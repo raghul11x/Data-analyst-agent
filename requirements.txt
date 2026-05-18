@@ -1,0 +1,12 @@
+flask
+flask-cors
+python-dotenv
+requests
+pandas
+openpyxl
+xlrd
+matplotlib
+seaborn
+reportlab
+scipy
+waitress

@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Preprocessor — Agentic Analyser</title>
+<link rel="icon" type="image/png" href="/static/favicon.png"/>
+<style>
+  :root {
+    --bg:#18181c; --surface:#1e1e24; --surface2:#26262e; --surface3:#2c2c36;
+    --border:#2a2a34; --border2:#36363f;
+    --accent:#c8ff3e; --accent2:#a8d832; --accent3:#d4ff66;
+    --text:#ededeb; --text2:#a8a8b0; --text3:#6b6b78;
+    --danger:#ff6b6b; --teal:#3effb4; --orange:#ffb347;
+    --radius:8px; --radius-lg:12px;
+    --font:'Inter','Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;display:flex;flex-direction:column;font-size:14px}
+
+  /* NAV TABS */
+  header{display:flex;align-items:center;padding:0 24px;height:54px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;gap:0}
+  .logo{font-size:1rem;font-weight:700;color:var(--accent);letter-spacing:-.3px;margin-right:28px}
+  .logo-sub{font-size:.68rem;color:var(--text3);margin-top:1px}
+  .tab{padding:0 18px;height:54px;display:flex;align-items:center;font-size:.8rem;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;text-decoration:none}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .model-pill{margin-left:auto;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px 11px;font-size:.7rem;color:var(--text3);font-family:monospace}
+
+  /* LAYOUT */
+  .layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 54px)}
+  .sidebar{width:280px;min-width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0}
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .s-block{padding:16px 16px 0}
+  .s-sep{height:1px;background:var(--border);margin-top:14px}
+
+  .field-label{font-size:.67rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:7px}
+
+  /* UPLOAD */
+  .upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius);padding:16px 12px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative;background:var(--surface2)}
+  .upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(200,255,62,.04)}
+  .upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .upload-text{font-size:.78rem;color:var(--text2);margin-bottom:3px}
+  .upload-hint{font-size:.68rem;color:var(--text3)}
+  .file-name{font-size:.75rem;color:var(--accent);margin-top:6px;font-weight:500;word-break:break-all}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:var(--radius);border:none;cursor:pointer;font-size:.8rem;font-weight:600;font-family:inherit;transition:all .15s;width:100%}
+  .btn-primary{background:var(--accent);color:#111}
+  .btn-primary:hover{background:var(--accent3)}
+  .btn-primary:disabled{opacity:.35;cursor:not-allowed}
+  .btn-secondary{background:var(--surface2);color:var(--text2);border:1px solid var(--border2)}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--text)}
+  .btn-sm{padding:5px 10px;font-size:.73rem;width:auto}
+  .btn-danger{background:rgba(255,107,107,.1);color:var(--danger);border:1px solid rgba(255,107,107,.25)}
+
+  /* MAIN CONTENT */
+  .content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:14px}
+
+  /* SECTION CARDS */
+  .section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+  .section-header{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer;user-select:none}
+  .section-title{font-size:.78rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+  .section-badge{font-size:.65rem;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(200,255,62,.12);color:var(--accent)}
+  .section-body{padding:14px 16px}
+  .section-chevron{width:13px;height:13px;stroke:var(--text3);fill:none;stroke-width:2;transition:transform .2s}
+  .section-chevron.open{transform:rotate(180deg)}
+  .section-collapsed{display:none}
+
+  /* STAT CHIPS */
+  .stat-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+  .stat-chip{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:.72rem}
+  .stat-chip span{color:var(--text3)}
+  .stat-chip strong{color:var(--accent);margin-left:4px}
+
+  /* COLUMN TABLE */
+  .col-table{width:100%;border-collapse:collapse;font-size:.75rem}
+  .col-table th{text-align:left;padding:7px 10px;color:var(--text3);font-size:.65rem;text-transform:uppercase;letter-spacing:.6px;border-bottom:1px solid var(--border);background:var(--surface2)}
+  .col-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .col-table tr:last-child td{border-bottom:none}
+  .col-table tr:hover td{background:rgba(255,255,255,.02)}
+  .type-badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.65rem;font-weight:700}
+  .type-numeric{background:rgba(62,255,180,.1);color:var(--teal)}
+  .type-categorical{background:rgba(200,255,62,.1);color:var(--accent)}
+  .type-text{background:rgba(126,184,255,.1);color:#7eb8ff}
+  .type-datetime{background:rgba(255,179,71,.1);color:var(--orange)}
+  .type-boolean{background:rgba(126,184,255,.1);color:#7eb8ff}
+  .null-bar-wrap{width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:5px}
+  .null-bar{height:100%;background:var(--danger);border-radius:3px}
+  select,input[type=text]{background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);padding:4px 7px;font-size:.73rem;font-family:inherit;outline:none}
+  select:focus,input[type=text]:focus{border-color:var(--accent)}
+
+  /* PREVIEW TABLE */
+  .preview-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border)}
+  .preview-table{width:100%;border-collapse:collapse;font-size:.73rem}
+  .preview-table th{text-align:left;padding:7px 10px;color:var(--text3);font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+  .preview-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap}
+  .preview-table tr:last-child td{border-bottom:none}
+  #previewModal table th{padding:7px 10px;text-align:left;color:var(--text3);font-size:.65rem;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);white-space:nowrap}
+  #previewModal table td{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--text2);white-space:nowrap}
+  #previewModal table tr:hover td{background:rgba(255,255,255,.02)}
+
+  /* LOG */
+  .log-entry{font-size:.75rem;color:var(--text2);padding:5px 0;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:8px}
+  .log-entry:last-child{border-bottom:none}
+  .log-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px}
+
+  /* EMPTY */
+  .empty{text-align:center;padding:48px 20px;color:var(--text3)}
+  .empty h3{font-size:.92rem;color:var(--text2);margin-bottom:7px}
+  .empty p{font-size:.78rem;line-height:1.7}
+
+  /* EXPORT MODAL */
+  .export-modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:flex;align-items:center;justify-content:center}
+  .export-modal{background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:24px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+  .export-modal h3{font-size:.9rem;font-weight:700;color:var(--accent);margin-bottom:6px}
+  .export-modal p{font-size:.75rem;color:var(--text3);margin-bottom:16px}
+  .export-format-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+  .export-format-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface2);border:1.5px solid var(--border2);border-radius:var(--radius);padding:14px 10px;cursor:pointer;transition:border-color .15s,background .15s;font-family:inherit}
+  .export-format-btn:hover{border-color:var(--accent);background:rgba(200,255,62,.05)}
+  .export-format-btn .fmt-icon{font-size:1.6rem}
+  .export-format-btn .fmt-label{font-size:.75rem;font-weight:700;color:var(--text)}
+  .export-format-btn .fmt-desc{font-size:.65rem;color:var(--text3);text-align:center}
+  .export-cancel{width:100%;background:none;border:1px solid var(--border2);border-radius:var(--radius);color:var(--text3);padding:8px;font-size:.78rem;cursor:pointer;font-family:inherit}
+  .export-cancel:hover{border-color:var(--danger);color:var(--danger)}
+  /* SCROLLBAR */
+  ::-webkit-scrollbar{width:4px;height:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--surface2);border:1px solid var(--accent);border-radius:var(--radius);padding:10px 16px;font-size:.78rem;color:var(--text);z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="margin-right:28px">
+    <div class="logo">Agentic Analyser</div>
+    <div class="logo-sub">Autonomous Data Intelligence</div>
+  </div>
+  <a href="/" class="tab">Analyse</a>
+  <a href="/preprocess" class="tab active">Preprocess</a>
+  <div class="model-pill" id="modelBadge">—</div>
+</header>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="s-block" style="padding-top:18px">
+      <span class="field-label">Dataset</span>
+      <div class="upload-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls"/>
+        <div class="upload-text">Drop file here or click to browse</div>
+        <div class="upload-hint">CSV · XLSX · XLS</div>
+        <div class="file-name" id="fileName"></div>
+      </div>
+    </div>
+
+    <div class="s-sep"></div>
+
+    <div class="s-block" style="padding-top:14px">
+      <button class="btn btn-primary" id="applyBtn" disabled>Apply Pipeline</button>
+    </div>
+
+    <div id="downloadWrap" style="display:none">
+      <div class="s-block" style="padding-top:8px">
+        <button class="btn btn-primary" id="sendToAnalyseBtn">Send to Analyser</button>
+      </div>
+      <div class="s-block" style="padding-top:8px">
+        <button class="btn btn-secondary" id="downloadCsvBtn">Download Cleaned CSV</button>
+      </div>
+
+    </div>
+
+    <div class="s-sep"></div>
+
+    <div class="s-block" style="padding-top:14px; padding-bottom:16px">
+      <span class="field-label">Transformation Log</span>
+      <div id="logList" style="max-height:300px;overflow-y:auto">
+        <div style="font-size:.72rem;color:var(--text3);font-style:italic">No transformations applied yet.</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <div class="content" id="content">
+      <div class="empty">
+        <h3>Upload a Dataset to Begin</h3>
+        <p>Upload a CSV or Excel file to see a full column profile and configure your preprocessing pipeline.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let sessionId = null;
+let pipeline  = { missing: [], types: [], encoding: [], scaling: [], outliers: [], features: [] };
+let profileData = null;
+
+const fileInput    = document.getElementById('fileInput');
+const dropZone     = document.getElementById('dropZone');
+const fileNameEl   = document.getElementById('fileName');
+const applyBtn     = document.getElementById('applyBtn');
+const downloadWrap = document.getElementById('downloadWrap');
+const content      = document.getElementById('content');
+const logList      = document.getElementById('logList');
+
+fetch('/model').then(r=>r.json()).then(d=>{ document.getElementById('modelBadge').textContent = d.model }).catch(()=>{});
+
+// Auto-load dataset sent from Analyser tab
+(async function checkAnalyseHandoff() {
+  const params     = new URLSearchParams(window.location.search);
+  const analyseSid = params.get('analyse_session');
+  if (!analyseSid) return;
+
+  // Clean URL immediately
+  window.history.replaceState({}, '', '/preprocess');
+
+  // Show loading state in main content
+  document.getElementById('content').innerHTML = `
+    <div class="empty">
+      <h3>Loading dataset from Analyser…</h3>
+      <p>Fetching your original dataset to begin preprocessing.</p>
+    </div>`;
+
+  try {
+    const resp = await fetch('/analyse/get_csv/' + encodeURIComponent(analyseSid));
+
+    if (!resp.ok) {
+      let errMsg = 'File no longer available.';
+      try { const j = await resp.json(); errMsg = j.error || errMsg; } catch {}
+      document.getElementById('content').innerHTML = `
+        <div class="empty">
+          <h3>Could Not Load Dataset</h3>
+          <p>${errMsg}</p>
+          <p style="margin-top:10px;font-size:.75rem;color:var(--text3)">
+            The server may have restarted. Please upload your file manually.
+          </p>
+        </div>`;
+      return;
+    }
+
+    const disp      = resp.headers.get('Content-Disposition') || '';
+    const nameMatch = disp.match(/filename=([^;]+)/);
+    const filename  = nameMatch ? nameMatch[1].trim() : 'dataset.csv';
+
+    const arrayBuf = await resp.arrayBuffer();
+    const blob     = new Blob([arrayBuf], { type: 'text/csv' });
+    const file     = new File([blob], filename, { type: 'text/csv' });
+
+    // Inject into file input
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('fileInput').files = dt.files;
+    document.getElementById('fileName').textContent = filename;
+
+    showToast('Dataset loaded: ' + filename);
+    await loadFile(file);
+  } catch(e) {
+    document.getElementById('content').innerHTML = `
+      <div class="empty">
+        <h3>Transfer Failed</h3>
+        <p>${e}</p>
+      </div>`;
+  }
+})();
+
+// FILE
+dropZone.addEventListener('dragover',  e=>{ e.preventDefault(); dropZone.classList.add('drag') });
+dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e=>{ e.preventDefault(); dropZone.classList.remove('drag'); if(e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', ()=>{ if(fileInput.files[0]) loadFile(fileInput.files[0]) });
+
+async function loadFile(file) {
+  fileNameEl.textContent = file.name;
+  content.innerHTML = '<div class="empty"><div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 16px"></div><h3>Profiling dataset…</h3><p>Reading file and analysing columns.</p><p style="margin-top:8px;font-size:.72rem;color:var(--text3)">Large Excel files may take a few seconds.</p></div>';
+  const fd = new FormData(); fd.append('file', file);
+  try {
+    const r = await fetch('/prep/profile', { method:'POST', body:fd });
+    const d = await r.json();
+    if (d.error) { showToast('Error: ' + d.error); return; }
+    sessionId   = d.session_id;
+    profileData = d;
+    pipeline    = { missing: [], types: [], encoding: [], scaling: [], outliers: [], features: [] };
+    applyBtn.disabled = false;
+    renderAll(d);
+  } catch(e) { showToast('Failed to profile: ' + e); }
+}
+
+// RENDER ALL SECTIONS
+function renderAll(d) {
+  content.innerHTML = '';
+  renderStats(d);
+  renderSmartRecommendations(d);
+  renderOverview(d);
+  renderMissing(d);
+  renderTypes(d);
+  renderOutliers(d);
+  renderEncoding(d);
+  renderScaling(d);
+  renderFeatures(d);
+  renderPreview(d);
+  // Scroll to top so recommendations are visible
+  document.querySelector('.content').scrollTop = 0;
+}
+
+function renderSmartRecommendations(d) {
+  const recs = [];
+
+  // 100% null columns → drop
+  const allNull = d.columns.filter(c => c.null_pct === 100);
+  allNull.forEach(c => {
+    recs.push({
+      label: `Drop '${c.name}' — 100% null`,
+      action: () => {
+        pipeline.features.push({ type: 'drop_column', col: c.name });
+        showToast(`'${c.name}' queued for drop`);
+      },
+      severity: 'high'
+    });
+  });
+
+  // High null columns >50%
+  const highNull = d.columns.filter(c => c.null_pct > 50 && c.null_pct < 100);
+  highNull.forEach(c => {
+    recs.push({
+      label: `Drop '${c.name}' — ${c.null_pct}% null`,
+      action: () => {
+        pipeline.features.push({ type: 'drop_column', col: c.name });
+        showToast(`'${c.name}' queued for drop`);
+      },
+      severity: 'high'
+    });
+  });
+
+  // Date columns stored as text → convert
+  const dateCols = d.columns.filter(c =>
+    c.sem_type === 'text' && c.sample.some(s => /\d{4}[-\/]\d{1,2}|\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}/.test(s))
+  );
+  dateCols.forEach(c => {
+    recs.push({
+      label: `Convert '${c.name}' to datetime (looks like dates)`,
+      action: () => {
+        pipeline.types.push({ col: c.name, to_type: 'datetime' });
+        pipeline.features.push({ type: 'datetime_parts', col: c.name });
+        showToast(`'${c.name}' queued for datetime conversion + part extraction`);
+      },
+      severity: 'medium'
+    });
+  });
+
+  // Binary numeric (0/1) → boolean suggestion
+  const binaryCols = d.columns.filter(c =>
+    c.sem_type === 'numeric' && c.unique === 2 && c.stats &&
+    ((c.stats.min === 0 && c.stats.max === 1) ||
+     (c.stats.min === 0.0 && c.stats.max === 1.0))
+  );
+  binaryCols.forEach(c => {
+    recs.push({
+      label: `Convert '${c.name}' to boolean (only 0/1 values)`,
+      action: () => {
+        pipeline.types.push({ col: c.name, to_type: 'boolean' });
+        showToast(`'${c.name}' queued for boolean conversion`);
+      },
+      severity: 'low'
+    });
+  });
+
+  // Low-null columns with nulls → suggest fill strategy
+  const lowNull = d.columns.filter(c => c.null_pct > 0 && c.null_pct <= 5);
+  lowNull.forEach(c => {
+    const strategy = c.sem_type === 'numeric' ? 'median' : 'mode';
+    recs.push({
+      label: `Fill '${c.name}' nulls with ${strategy} (${c.null_pct}% missing)`,
+      action: () => {
+        pipeline.missing.push({ col: c.name, strategy });
+        showToast(`'${c.name}' fill with ${strategy} queued`);
+      },
+      severity: 'low'
+    });
+  });
+
+  // Highly skewed numeric → log transform
+  const skewed = d.columns.filter(c => c.sem_type === 'numeric' && c.stats.skew && Math.abs(c.stats.skew) > 2);
+  skewed.forEach(c => {
+    recs.push({
+      label: `Log-transform '${c.name}' (skew: ${c.stats.skew})`,
+      action: () => {
+        pipeline.features.push({ type: 'log_transform', col: c.name });
+        showToast(`Log transform for '${c.name}' queued`);
+      },
+      severity: 'low'
+    });
+  });
+
+  if (!recs.length) return;
+
+  const card = document.createElement('div');
+  card.className = 'section-card';
+  card.style.borderColor = 'var(--accent)';
+
+  const severityColor = { high: 'var(--danger)', medium: 'var(--orange)', low: 'var(--teal)' };
+  const severityLabel = { high: 'Fix', medium: 'Improve', low: 'Optimise' };
+
+  const btns = recs.map((r, i) => `
+    <button class="rec-btn" data-idx="${i}"
+      style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);
+             padding:8px 12px;font-size:.75rem;color:var(--text2);cursor:pointer;
+             font-family:inherit;text-align:left;transition:border-color .15s;display:flex;align-items:center;gap:8px">
+      <span style="font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:3px;
+                   background:rgba(0,0,0,.3);color:${severityColor[r.severity]};white-space:nowrap">
+        ${severityLabel[r.severity]}
+      </span>
+      ${r.label}
+    </button>`).join('');
+
+  card.innerHTML = `
+    <div class="section-header" style="cursor:default">
+      <div class="section-title">
+        Smart Recommendations
+        <span class="section-badge">${recs.length} suggestions</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="applyAllRecs" style="background:var(--accent);color:#111;border:none;border-radius:var(--radius);
+          padding:5px 12px;font-size:.73rem;font-weight:700;cursor:pointer;font-family:inherit">
+          Apply All
+        </button>
+        <button id="applyAndRun" style="background:var(--surface3);color:var(--text2);border:1px solid var(--border2);
+          border-radius:var(--radius);padding:5px 12px;font-size:.73rem;font-weight:600;cursor:pointer;font-family:inherit">
+          Apply All + Run Pipeline
+        </button>
+      </div>
+    </div>
+    <div class="section-body">
+      <div style="display:flex;flex-direction:column;gap:6px" id="recList">${btns}</div>
+    </div>`;
+
+  content.appendChild(card);
+
+  // Wire up individual buttons
+  card.querySelectorAll('.rec-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      recs[idx].action();
+      btn.style.opacity = '0.4';
+      btn.style.pointerEvents = 'none';
+      btn.style.borderColor = 'var(--accent)';
+    });
+    btn.addEventListener('mouseenter', () => { if (btn.style.opacity !== '0.4') btn.style.borderColor = 'var(--accent)'; });
+    btn.addEventListener('mouseleave', () => { if (btn.style.opacity !== '0.4') btn.style.borderColor = 'var(--border2)'; });
+  });
+
+  // Apply all button
+  card.querySelector('#applyAllRecs').addEventListener('click', () => {
+    card.querySelectorAll('.rec-btn').forEach(btn => {
+      if (btn.style.opacity !== '0.4') btn.click();
+    });
+    showToast('All recommendations queued — click Apply Pipeline to run');
+  });
+
+  // Apply all + run
+  card.querySelector('#applyAndRun').addEventListener('click', async () => {
+    card.querySelectorAll('.rec-btn').forEach(btn => {
+      if (btn.style.opacity !== '0.4') btn.click();
+    });
+    showToast('Running pipeline…');
+    setTimeout(() => applyBtn.click(), 300);
+  });
+}
+
+function renderStats(d) {
+  const div = document.createElement('div');
+  div.className = 'stat-row';
+  const items = [
+    ['Rows',    d.rows],
+    ['Columns', d.cols],
+    ['Memory',  d.memory],
+    ['Nulls',   d.columns.filter(c=>c.null_ct>0).length + ' cols affected'],
+    ['Numeric', d.columns.filter(c=>c.sem_type==='numeric').length],
+    ['Categorical', d.columns.filter(c=>c.sem_type==='categorical').length],
+  ];
+  div.innerHTML = items.map(([l,v])=>`<div class="stat-chip"><span>${l}</span><strong>${v}</strong></div>`).join('');
+  content.appendChild(div);
+}
+
+function makeSection(title, badgeText, bodyFn) {
+  const card = document.createElement('div');
+  card.className = 'section-card';
+  const hdr = document.createElement('div');
+  hdr.className = 'section-header';
+  hdr.innerHTML = `
+    <div class="section-title">
+      ${title}
+      ${badgeText ? `<span class="section-badge">${badgeText}</span>` : ''}
+    </div>
+    <svg class="section-chevron open" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`;
+  const body = document.createElement('div');
+  body.className = 'section-body';
+  bodyFn(body);
+  hdr.addEventListener('click', ()=>{
+    const open = body.classList.toggle('section-collapsed');
+    hdr.querySelector('.section-chevron').classList.toggle('open', !open);
+  });
+  card.appendChild(hdr); card.appendChild(body);
+  content.appendChild(card);
+}
+
+// OVERVIEW TABLE
+function renderOverview(d) {
+  makeSection('Column Overview', d.cols + ' columns', body => {
+    const table = document.createElement('table');
+    table.className = 'col-table';
+    table.innerHTML = `<thead><tr>
+      <th>Column</th><th>Type</th><th>Nulls</th><th>Unique</th><th>Sample Values</th>
+      <th style="color:var(--danger)">Drop</th>
+    </tr></thead>`;
+    const tbody = document.createElement('tbody');
+    d.columns.forEach(col => {
+      const tr = document.createElement('tr');
+      const nullBar = col.null_pct > 0
+        ? `<div class="null-bar-wrap"><div class="null-bar" style="width:${col.null_pct}%"></div></div>${col.null_pct}%`
+        : '<span style="color:var(--teal)">None</span>';
+      // Detect date-like text columns for display
+      const isDateLike = col.sem_type === 'text' &&
+        col.sample.some(s => /\d{1,4}[-\/]\d{1,2}[-\/]\d{2,4}/.test(s));
+      const displayType = isDateLike ? 'datetime' : col.sem_type;
+      const displayLabel = isDateLike ? 'text (date)' : col.sem_type;
+      tr.innerHTML = `
+        <td style="font-weight:600;color:var(--text)">${col.name}</td>
+        <td><span class="type-badge type-${displayType}">${displayLabel}</span></td>
+        <td>${nullBar} <span style="color:var(--text3);font-size:.68rem">(${col.null_ct})</span></td>
+        <td>${col.unique}</td>
+        <td style="color:var(--text3)">${col.sample.slice(0,3).join(', ')}</td>
+        <td style="text-align:center">
+          <input type="checkbox" data-col="${col.name}" data-step="drop"
+            style="accent-color:var(--danger);width:15px;height:15px;cursor:pointer"
+            ${col.null_pct === 100 ? 'checked' : ''}/>
+        </td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+
+    // Wire drop checkboxes
+    body.querySelectorAll('input[data-step="drop"]').forEach(cb => {
+      // Auto-queue 100% null columns
+      if (cb.checked) {
+        const col = cb.dataset.col;
+        pipeline.features = pipeline.features.filter(r => !(r.type === 'drop_column' && r.col === col));
+        pipeline.features.push({ type: 'drop_column', col });
+      }
+      cb.addEventListener('change', () => {
+        const col = cb.dataset.col;
+        pipeline.features = pipeline.features.filter(r => !(r.type === 'drop_column' && r.col === col));
+        if (cb.checked) {
+          pipeline.features.push({ type: 'drop_column', col });
+          cb.closest('tr').style.opacity = '0.45';
+          cb.closest('tr').style.textDecoration = 'line-through';
+        } else {
+          cb.closest('tr').style.opacity = '1';
+          cb.closest('tr').style.textDecoration = 'none';
+        }
+        showToast(cb.checked ? `'${col}' marked for drop` : `'${col}' restored`);
+      });
+      // Style already-checked (100% null) rows
+      if (cb.checked) {
+        cb.closest('tr').style.opacity = '0.45';
+        cb.closest('tr').style.textDecoration = 'line-through';
+      }
+    });
+  });
+}
+
+// MISSING VALUES
+function renderMissing(d) {
+  const nullCols = d.columns.filter(c => c.null_ct > 0);
+  makeSection('Missing Values', nullCols.length + ' columns affected', body => {
+    if (!nullCols.length) {
+      body.innerHTML = '<div style="font-size:.78rem;color:var(--teal)">No missing values found.</div>';
+      return;
+    }
+    const table = document.createElement('table');
+    table.className = 'col-table';
+    table.innerHTML = `<thead><tr><th>Column</th><th>Missing</th><th>Strategy</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    nullCols.forEach(col => {
+      const tr = document.createElement('tr');
+      const isNum = col.sem_type === 'numeric';
+      const sel = `<select data-col="${col.name}" data-step="missing">
+        <option value="">— skip —</option>
+        <option value="drop_rows">Drop rows</option>
+        ${isNum ? '<option value="mean">Fill mean</option><option value="median">Fill median</option>' : ''}
+        <option value="mode">Fill mode</option>
+        <option value="ffill">Forward fill</option>
+        <option value="bfill">Backward fill</option>
+        <option value="constant:0">Fill with 0</option>
+        <option value="constant:unknown">Fill with "unknown"</option>
+      </select>`;
+      tr.innerHTML = `<td style="font-weight:600">${col.name}</td>
+        <td>${col.null_pct}% (${col.null_ct} rows)</td>
+        <td>${sel}</td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+    body.querySelectorAll('select[data-step="missing"]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const col = sel.dataset.col;
+        pipeline.missing = pipeline.missing.filter(r => r.col !== col);
+        if (sel.value) pipeline.missing.push({ col, strategy: sel.value });
+      });
+    });
+  });
+}
+
+// DATA TYPES
+function renderTypes(d) {
+  makeSection('Data Types', null, body => {
+    const table = document.createElement('table');
+    table.className = 'col-table';
+    table.innerHTML = `<thead><tr><th>Column</th><th>Current Type</th><th>Convert To</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    d.columns.forEach(col => {
+      const tr = document.createElement('tr');
+      const isDateCol = col.sem_type === 'text' && col.sample.some(s => /\d{1,4}[-\/]\d{1,2}[-\/]\d{2,4}/.test(s));
+      if (isDateCol) { pipeline.types = pipeline.types.filter(r => r.col !== col.name); pipeline.types.push({ col: col.name, to_type: 'datetime' }); }
+      const sel = `<select data-col="${col.name}" data-step="types">
+        <option value="" ${isDateCol ? '' : 'selected'}>— keep —</option>
+        <option value="numeric">Numeric</option>
+        <option value="string">String</option>
+        <option value="datetime" ${isDateCol ? 'selected' : ''}>Datetime</option>
+        <option value="category">Category</option>
+        <option value="boolean">Boolean</option>
+      </select>`;
+      const typeLabel = isDateCol ? `<span class="type-badge type-datetime">text (date)</span>` : `<span class="type-badge type-${col.sem_type}">${col.dtype}</span>`;
+      tr.innerHTML = `<td style="font-weight:600">${col.name}</td>
+        <td>${typeLabel}</td>
+        <td>${sel}</td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+    body.querySelectorAll('select[data-step="types"]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const col = sel.dataset.col;
+        pipeline.types = pipeline.types.filter(r => r.col !== col);
+        if (sel.value) pipeline.types.push({ col, to_type: sel.value });
+      });
+    });
+  });
+}
+
+// OUTLIERS
+function renderOutliers(d) {
+  const numCols = d.columns.filter(c => c.sem_type === 'numeric');
+  makeSection('Outlier Handling', numCols.length + ' numeric columns', body => {
+    if (!numCols.length) { body.innerHTML = '<div style="font-size:.78rem;color:var(--text3)">No numeric columns.</div>'; return; }
+    const table = document.createElement('table');
+    table.className = 'col-table';
+    table.innerHTML = `<thead><tr><th>Column</th><th>Min / Max</th><th>Skew</th><th>Detection</th><th>Strategy</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    numCols.forEach(col => {
+      const tr = document.createElement('tr');
+      const s = col.stats;
+      const skewColor = Math.abs(s.skew||0) > 1 ? 'var(--danger)' : 'var(--text2)';
+      tr.innerHTML = `
+        <td style="font-weight:600">${col.name}</td>
+        <td style="color:var(--text3);font-size:.7rem">${s.min ?? '—'} / ${s.max ?? '—'}</td>
+        <td style="color:${skewColor}">${s.skew ?? '—'}</td>
+        <td><select data-col="${col.name}" data-step="outlier-method">
+          <option value="iqr">IQR</option><option value="zscore">Z-score</option>
+        </select></td>
+        <td><select data-col="${col.name}" data-step="outlier-strategy">
+          <option value="">— skip —</option>
+          <option value="cap">Cap (Winsorise)</option>
+          <option value="remove">Remove rows</option>
+          <option value="keep">Keep (flag only)</option>
+        </select></td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+    body.querySelectorAll('select[data-step="outlier-strategy"]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const col     = sel.dataset.col;
+        const method  = body.querySelector(`select[data-col="${col}"][data-step="outlier-method"]`)?.value || 'iqr';
+        pipeline.outliers = pipeline.outliers.filter(r => r.col !== col);
+        if (sel.value) pipeline.outliers.push({ col, method, strategy: sel.value });
+      });
+    });
+  });
+}
+
+// ENCODING
+function renderEncoding(d) {
+  const catCols = d.columns.filter(c => c.sem_type === 'categorical' || c.sem_type === 'text' || c.dtype === 'object');
+  makeSection('Encoding', catCols.length + ' columns', body => {
+    if (!catCols.length) { body.innerHTML = '<div style="font-size:.78rem;color:var(--text3)">No categorical columns found.</div>'; return; }
+    const table = document.createElement('table');
+    table.className = 'col-table';
+    table.innerHTML = `<thead><tr><th>Column</th><th>Unique Values</th><th>Method</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    catCols.forEach(col => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:600">${col.name}</td>
+        <td>${col.unique}</td>
+        <td><select data-col="${col.name}" data-step="encoding">
+          <option value="">— skip —</option>
+          <option value="label">Label Encoding</option>
+          <option value="onehot">One-Hot Encoding</option>
+          <option value="drop">Drop Column</option>
+        </select></td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+    body.querySelectorAll('select[data-step="encoding"]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const col = sel.dataset.col;
+        pipeline.encoding = pipeline.encoding.filter(r => r.col !== col);
+        if (sel.value) pipeline.encoding.push({ col, method: sel.value });
+      });
+    });
+  });
+}
+
+// SCALING
+function renderScaling(d) {
+  const numCols = d.columns.filter(c => c.sem_type === 'numeric');
+  makeSection('Scaling & Normalisation', null, body => {
+    if (!numCols.length) { body.innerHTML = '<div style="font-size:.78rem;color:var(--text3)">No numeric columns.</div>'; return; }
+
+    // Quick-apply buttons
+    const quickRow = document.createElement('div');
+    quickRow.style.cssText = 'display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap';
+    ['standard','minmax','robust'].forEach(m => {
+      const b = document.createElement('button');
+      b.className = 'btn btn-secondary btn-sm';
+      b.textContent = m === 'standard' ? 'Apply StandardScaler to all' : m === 'minmax' ? 'Apply MinMax to all' : 'Apply Robust to all';
+      b.addEventListener('click', () => {
+        body.querySelectorAll('select[data-step="scaling"]').forEach(sel => { sel.value = m; sel.dispatchEvent(new Event('change')); });
+      });
+      quickRow.appendChild(b);
+    });
+    body.appendChild(quickRow);
+
+    const table = document.createElement('table');
+    table.className = 'col-table';
+    table.innerHTML = `<thead><tr><th>Column</th><th>Mean</th><th>Std</th><th>Method</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    numCols.forEach(col => {
+      const s = col.stats;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-weight:600">${col.name}</td>
+        <td style="color:var(--text3)">${s.mean ?? '—'}</td>
+        <td style="color:var(--text3)">${s.std ?? '—'}</td>
+        <td><select data-col="${col.name}" data-step="scaling">
+          <option value="none">— none —</option>
+          <option value="standard">StandardScaler</option>
+          <option value="minmax">MinMaxScaler</option>
+          <option value="robust">RobustScaler</option>
+        </select></td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    body.appendChild(table);
+    body.querySelectorAll('select[data-step="scaling"]').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const col = sel.dataset.col;
+        pipeline.scaling = pipeline.scaling.filter(r => r.col !== col);
+        if (sel.value && sel.value !== 'none') pipeline.scaling.push({ col, method: sel.value });
+      });
+    });
+  });
+}
+
+// FEATURES
+function renderFeatures(d) {
+  makeSection('Feature Engineering', null, body => {
+    const rows = [
+      ['Drop Duplicates',       () => { pipeline.features.push({ type:'drop_duplicates' }); showToast('Drop duplicates added to pipeline'); }],
+      ['Drop High-Null Cols (>50%)', () => { pipeline.features.push({ type:'drop_high_null', threshold:50 }); showToast('Drop high-null columns added'); }],
+      ['Drop Low-Variance Cols',() => { pipeline.features.push({ type:'drop_low_variance', threshold:0.01 }); showToast('Drop low-variance columns added'); }],
+    ];
+
+    const grid = document.createElement('div');
+    grid.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px';
+    rows.forEach(([label, fn]) => {
+      const b = document.createElement('button');
+      b.className = 'btn btn-secondary btn-sm';
+      b.textContent = label;
+      b.addEventListener('click', fn);
+      grid.appendChild(b);
+    });
+    body.appendChild(grid);
+
+    // Datetime extraction
+    const dtCols = d.columns.filter(c => c.sem_type === 'datetime' || c.dtype.includes('datetime') || c.sample.some(s => /\d{4}[-/]\d{2}/.test(s)));
+    if (dtCols.length) {
+      const heading = document.createElement('div');
+      heading.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px';
+      heading.textContent = 'Extract Datetime Parts';
+      body.appendChild(heading);
+      const dtGrid = document.createElement('div');
+      dtGrid.style.cssText = 'display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px';
+      dtCols.forEach(col => {
+        const b = document.createElement('button');
+        b.className = 'btn btn-secondary btn-sm';
+        b.textContent = col.name + ' → year/month/day/weekday';
+        b.addEventListener('click', () => {
+          pipeline.features.push({ type:'datetime_parts', col: col.name });
+          showToast(`Datetime parts extraction added for '${col.name}'`);
+        });
+        dtGrid.appendChild(b);
+      });
+      body.appendChild(dtGrid);
+    }
+
+    // Log transform for skewed numeric
+    const skewedCols = d.columns.filter(c => c.sem_type === 'numeric' && c.stats.skew && Math.abs(c.stats.skew) > 1);
+    if (skewedCols.length) {
+      const heading2 = document.createElement('div');
+      heading2.style.cssText = 'font-size:.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px';
+      heading2.textContent = 'Skewed Columns (|skew| > 1) — Apply Log Transform';
+      body.appendChild(heading2);
+      const skGrid = document.createElement('div');
+      skGrid.style.cssText = 'display:flex;gap:7px;flex-wrap:wrap';
+      skewedCols.forEach(col => {
+        const b = document.createElement('button');
+        b.className = 'btn btn-secondary btn-sm';
+        b.style.color = 'var(--orange)';
+        b.textContent = `${col.name} (skew: ${col.stats.skew})`;
+        b.addEventListener('click', () => {
+          pipeline.features.push({ type:'log_transform', col: col.name });
+          showToast(`Log transform added for '${col.name}'`);
+        });
+        skGrid.appendChild(b);
+      });
+      body.appendChild(skGrid);
+    }
+  });
+}
+
+// DATA PREVIEW
+function renderPreview(d) {
+  makeSection('Data Preview (first 5 rows)', null, body => {
+    if (!d.preview || !d.preview.length) { body.innerHTML = '<div style="font-size:.78rem;color:var(--text3)">No preview available.</div>'; return; }
+    const wrap  = document.createElement('div'); wrap.className = 'preview-wrap';
+    const table = document.createElement('table'); table.className = 'preview-table';
+    const cols  = d.columns_list || Object.keys(d.preview[0]);
+    table.innerHTML = `<thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>`;
+    const tbody = document.createElement('tbody');
+    d.preview.forEach(row => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = cols.map(c => `<td>${row[c] ?? ''}</td>`).join('');
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    body.appendChild(wrap);
+  });
+}
+
+// APPLY PIPELINE
+applyBtn.addEventListener('click', async () => {
+  if (!sessionId) return;
+  applyBtn.disabled = true; applyBtn.textContent = 'Applying…';
+  try {
+    const r = await fetch('/prep/apply', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id: sessionId, pipeline })
+    });
+    const d = await r.json();
+    if (d.error) { showToast('Error: ' + d.error); return; }
+    profileData = d;
+    pipeline = { missing: [], types: [], encoding: [], scaling: [], outliers: [], features: [] };
+    renderAll(d);
+    renderLog(d.log);
+    downloadWrap.style.display = 'block';
+    showPreviewModal(d);
+    showToast('Pipeline applied — review the sample below');
+  } catch(e) { showToast('Failed: ' + e); }
+  finally { applyBtn.disabled = false; applyBtn.textContent = 'Apply Pipeline'; }
+});
+
+function showPreviewModal(d) {
+  // Remove existing modal
+  const existing = document.getElementById('previewModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'previewModal';
+  modal.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;
+    display:flex;align-items:center;justify-content:center;padding:20px`;
+
+  const cols = d.columns_list || [];
+  const rows = d.preview || [];
+  const thHtml = cols.map(c => `<th>${c}</th>`).join('');
+  const tdHtml = rows.map(row =>
+    `<tr>${cols.map(c => `<td>${row[c] ?? ''}</td>`).join('')}</tr>`
+  ).join('');
+
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--accent);border-radius:var(--radius-lg);
+      width:90vw;max-width:1100px;max-height:80vh;display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;
+        padding:14px 18px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0">
+        <div style="font-size:.82rem;font-weight:700;color:var(--accent)">
+          Sample Preview — ${d.rows} rows × ${d.cols} columns after pipeline
+        </div>
+        <button id="closePreview" style="background:none;border:none;color:var(--text3);
+          font-size:1.1rem;cursor:pointer;padding:0 4px">✕</button>
+      </div>
+      <div style="overflow:auto;flex:1;padding:14px">
+        <table style="width:100%;border-collapse:collapse;font-size:.73rem">
+          <thead><tr style="background:var(--surface2)">${thHtml}</tr></thead>
+          <tbody>${tdHtml}</tbody>
+        </table>
+      </div>
+      <div style="padding:12px 18px;border-top:1px solid var(--border);
+        display:flex;gap:10px;justify-content:flex-end;flex-shrink:0">
+        <button id="previewContinue" style="background:var(--surface2);color:var(--text2);
+          border:1px solid var(--border2);border-radius:var(--radius);padding:8px 16px;
+          font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit">
+          Continue Editing
+        </button>
+        <button id="previewSave" style="background:var(--accent);color:#111;border:none;
+          border-radius:var(--radius);padding:8px 18px;font-size:.8rem;
+          font-weight:700;cursor:pointer;font-family:inherit">
+          Save Preprocessed CSV
+        </button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  document.getElementById('closePreview').addEventListener('click', () => modal.remove());
+  document.getElementById('previewContinue').addEventListener('click', () => modal.remove());
+  document.getElementById('previewSave').addEventListener('click', () => {
+    modal.remove();
+    saveWithDialog();
+  });
+}
+
+async function saveWithDialog() {
+  if (!sessionId) return;
+  try {
+    const r = await fetch('/prep/download_csv', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id: sessionId })
+    });
+    const d = await r.json();
+    if (!d.csv) { showToast('Error: ' + (d.error||'unknown')); return; }
+
+    // Use showSaveFilePicker if available (modern browsers) — triggers native Save As dialog
+    const bytes  = Uint8Array.from(atob(d.csv), c => c.charCodeAt(0));
+    const blob   = new Blob([bytes], { type: 'text/csv' });
+
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: d.filename || 'cleaned_dataset.csv',
+          types: [{ description: 'CSV File', accept: { 'text/csv': ['.csv'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        showToast('Saved successfully');
+        return;
+      } catch(e) {
+        if (e.name === 'AbortError') return; // user cancelled
+      }
+    }
+    // Fallback for browsers without showSaveFilePicker
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = d.filename || 'cleaned_dataset.csv';
+    a.click();
+    showToast('Downloaded: ' + (d.filename || 'cleaned_dataset.csv'));
+  } catch(e) { showToast('Save failed: ' + e); }
+}
+
+function renderLog(newEntries) {
+  if (!newEntries || !newEntries.length) return;
+  const existing = logList.querySelector('.log-entry') ? logList.innerHTML : '';
+  if (!logList.querySelector('.log-entry')) logList.innerHTML = '';
+  newEntries.forEach(entry => {
+    const div = document.createElement('div'); div.className = 'log-entry';
+    div.innerHTML = `<div class="log-dot"></div><span>${entry}</span>`;
+    logList.appendChild(div);
+  });
+}
+
+// SEND TO ANALYSER — pass session_id via URL param, server delivers the file
+document.getElementById('sendToAnalyseBtn').addEventListener('click', () => {
+  if (!sessionId) return;
+  showToast('Opening Analyser with cleaned dataset…');
+  setTimeout(() => {
+    window.location.href = '/?prep_session=' + encodeURIComponent(sessionId);
+  }, 400);
+});
+
+// DOWNLOADS
+document.getElementById('downloadCsvBtn').addEventListener('click', () => showExportModal());
+
+function showExportModal() {
+  if (!sessionId) return;
+
+  const bg = document.createElement('div');
+  bg.className = 'export-modal-bg';
+  bg.id = 'exportModalBg';
+
+  bg.innerHTML = `
+    <div class="export-modal">
+      <h3>Export Cleaned Dataset</h3>
+      <p>Choose your export format. The preview shows your cleaned data.</p>
+      <div class="export-format-grid">
+        <button class="export-format-btn" id="exportCsvBtn">
+          <span class="fmt-icon">📄</span>
+          <span class="fmt-label">CSV</span>
+          <span class="fmt-desc">Universal, lightweight, works everywhere</span>
+        </button>
+        <button class="export-format-btn" id="exportExcelFmtBtn">
+          <span class="fmt-icon">📊</span>
+          <span class="fmt-label">Excel (.xlsx)</span>
+          <span class="fmt-desc">Formatted spreadsheet with column headers</span>
+        </button>
+        <button class="export-format-btn" id="exportJsonBtn">
+          <span class="fmt-icon">🔧</span>
+          <span class="fmt-label">JSON</span>
+          <span class="fmt-desc">For developers and APIs</span>
+        </button>
+        <button class="export-format-btn" id="exportHtmlBtn">
+          <span class="fmt-icon">🌐</span>
+          <span class="fmt-label">HTML</span>
+          <span class="fmt-desc">View in browser, share as report</span>
+        </button>
+      </div>
+      <button class="export-cancel" id="exportCancelBtn">Cancel</button>
+    </div>`;
+
+  document.body.appendChild(bg);
+
+  document.getElementById('exportCancelBtn').addEventListener('click', () => bg.remove());
+  bg.addEventListener('click', e => { if (e.target === bg) bg.remove(); });
+
+  document.getElementById('exportCsvBtn').addEventListener('click', () => {
+    bg.remove(); saveWithDialog('csv');
+  });
+  document.getElementById('exportExcelFmtBtn').addEventListener('click', () => {
+    bg.remove(); saveWithDialog('xlsx');
+  });
+  document.getElementById('exportJsonBtn').addEventListener('click', () => {
+    bg.remove(); saveWithDialog('json');
+  });
+  document.getElementById('exportHtmlBtn').addEventListener('click', () => {
+    bg.remove(); saveWithDialog('html');
+  });
+}
+
+async function saveWithDialog(format = 'csv') {
+  if (!sessionId) return;
+  try {
+    const r = await fetch('/prep/download_csv', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ session_id: sessionId })
+    });
+    const d = await r.json();
+    if (!d.csv) { showToast('Error: ' + (d.error||'unknown')); return; }
+
+    const bytes = Uint8Array.from(atob(d.csv), c => c.charCodeAt(0));
+    const baseName = (d.filename || 'cleaned_dataset').replace(/\.csv$/, '');
+
+    if (format === 'csv') {
+      const blob = new Blob([bytes], { type: 'text/csv' });
+      triggerDownload(blob, baseName + '.csv');
+
+    } else if (format === 'xlsx') {
+      // Convert CSV to simple xlsx via server
+      const blob = new Blob([bytes], { type: 'text/csv' });
+      const fd   = new FormData();
+      fd.append('file', new File([blob], baseName + '.csv', { type: 'text/csv' }));
+      fd.append('filename', baseName);
+      const r2 = await fetch('/prep/export_xlsx', { method:'POST', body: fd });
+      const d2 = await r2.json();
+      if (d2.xlsx) {
+        const xbytes = Uint8Array.from(atob(d2.xlsx), c => c.charCodeAt(0));
+        triggerDownload(
+          new Blob([xbytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+          baseName + '.xlsx'
+        );
+      } else { showToast('Excel export failed'); }
+
+    } else if (format === 'json') {
+      // Parse CSV and convert to JSON
+      const text = new TextDecoder().decode(bytes);
+      const rows = text.trim().split('\n');
+      const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      const jsonData = rows.slice(1).map(row => {
+        const vals = row.split(',');
+        const obj  = {};
+        headers.forEach((h, i) => { obj[h] = vals[i]?.trim().replace(/^"|"$/g, '') || ''; });
+        return obj;
+      });
+      triggerDownload(
+        new Blob([JSON.stringify(jsonData, null, 2)], { type: 'application/json' }),
+        baseName + '.json'
+      );
+
+    } else if (format === 'html') {
+      const text = new TextDecoder().decode(bytes);
+      const rows = text.trim().split('\n');
+      const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+      const dataRows = rows.slice(1);
+      const thHtml = headers.map(h => `<th>${h}</th>`).join('');
+      const tdHtml = dataRows.map(row => {
+        const vals = row.split(',');
+        return '<tr>' + vals.map(v => `<td>${v.trim().replace(/^"|"$/g, '')}</td>`).join('') + '</tr>';
+      }).join('');
+      const htmlContent = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>${baseName}</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #18181c; color: #ededeb; padding: 20px; }
+  h2 { color: #c8ff3e; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th { background: #c8ff3e; color: #111; padding: 8px 12px; text-align: left; }
+  td { padding: 7px 12px; border-bottom: 1px solid #2a2a34; }
+  tr:hover td { background: rgba(255,255,255,.04); }
+  .meta { font-size: 12px; color: #6b6b78; margin-bottom: 16px; }
+</style></head>
+<body>
+<h2>${baseName}</h2>
+<div class="meta">Exported from Agentic Analyser · ${new Date().toLocaleString()}</div>
+<table><thead><tr>${thHtml}</tr></thead><tbody>${tdHtml}</tbody></table>
+</body></html>`;
+      triggerDownload(
+        new Blob([htmlContent], { type: 'text/html' }),
+        baseName + '.html'
+      );
+    }
+
+    showToast('Exported as ' + format.toUpperCase());
+  } catch(e) { showToast('Export failed: ' + e); }
+}
+
+function triggerDownload(blob, filename) {
+  if (window.showSaveFilePicker) {
+    const extMap = { csv: 'text/csv', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', json: 'application/json', html: 'text/html' };
+    const ext = filename.split('.').pop();
+    window.showSaveFilePicker({
+      suggestedName: filename,
+      types: [{ description: ext.toUpperCase() + ' File', accept: { [extMap[ext] || 'application/octet-stream']: ['.' + ext] } }]
+    }).then(async handle => {
+      const w = await handle.createWritable();
+      await w.write(blob); await w.close();
+    }).catch(e => {
+      if (e.name !== 'AbortError') { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; a.click(); }
+    });
+  } else {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+  }
+}
+
+
+
+// TOAST
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+
+// ── ANALYSE → PREPROCESS HANDOFF (runs after all functions defined) ──
+async function checkAnalyseHandoff() {
+  const params      = new URLSearchParams(window.location.search);
+  const analyseSid  = params.get('analyse_session');
+  const fromAnalyse = params.get('from_analyse');
+
+  // Try sessionStorage transfer first (small files sent as base64)
+  if (fromAnalyse === '1') {
+    window.history.replaceState({}, '', '/preprocess');
+    const dataUrl  = sessionStorage.getItem('prepTransferData');
+    const filename = sessionStorage.getItem('prepTransferName') || 'dataset.csv';
+    sessionStorage.removeItem('prepTransferData');
+    sessionStorage.removeItem('prepTransferName');
+    sessionStorage.removeItem('prepTransferSid');
+
+    if (dataUrl) {
+      document.getElementById('content').innerHTML = `
+        <div class="empty">
+          <div style="width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);
+            border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 16px"></div>
+          <h3>Loading dataset from Analyser…</h3><p>${filename}</p>
+        </div>`;
+      try {
+        const res  = await fetch(dataUrl);
+        const blob = await res.blob();
+        const file = new File([blob], filename, { type: 'text/csv' });
+        const dt   = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('fileInput').files = dt.files;
+        document.getElementById('fileName').textContent = filename;
+        showToast('Dataset loaded: ' + filename);
+        await loadFile(file);
+      } catch(e) {
+        document.getElementById('content').innerHTML = `<div class="empty"><h3>Transfer Failed</h3><p>${e}</p></div>`;
+      }
+      return;
+    }
+  }
+
+  if (!analyseSid) return;
+  window.history.replaceState({}, '', '/preprocess');
+
+  document.getElementById('content').innerHTML = `
+    <div class="empty">
+      <h3>Loading dataset from Analyser…</h3>
+      <p>Fetching your original dataset to begin preprocessing.</p>
+    </div>`;
+
+  try {
+    const resp = await fetch('/analyse/get_csv/' + encodeURIComponent(analyseSid));
+
+    if (!resp.ok) {
+      let errMsg = 'File no longer available.';
+      try { const j = await resp.json(); errMsg = j.error || errMsg; } catch {}
+      document.getElementById('content').innerHTML = `
+        <div class="empty">
+          <h3>Could Not Load Dataset</h3>
+          <p>${errMsg}</p>
+          <p style="margin-top:10px;font-size:.75rem;color:var(--text3)">
+            The server may have restarted. Please re-upload manually.
+          </p>
+        </div>`;
+      return;
+    }
+
+    const disp      = resp.headers.get('Content-Disposition') || '';
+    const nameMatch = disp.match(/filename=([^;]+)/);
+    const filename  = nameMatch ? nameMatch[1].trim() : 'dataset.csv';
+
+    const buf  = await resp.arrayBuffer();
+    const blob = new Blob([buf], { type: 'text/csv' });
+    const file = new File([blob], filename, { type: 'text/csv' });
+
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('fileInput').files = dt.files;
+    document.getElementById('fileName').textContent = filename;
+
+    showToast('Dataset loaded: ' + filename);
+    await loadFile(file);
+  } catch(e) {
+    document.getElementById('content').innerHTML = `
+      <div class="empty"><h3>Transfer Failed</h3><p>${e}</p></div>`;
+  }
+}
+
+checkAnalyseHandoff();
+</script>
+</body>
+</html>

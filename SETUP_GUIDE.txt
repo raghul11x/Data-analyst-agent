@@ -1,0 +1,271 @@
+================================================================
+  DATA_ANALYST — SETUP & RUN GUIDE (VS Code)
+================================================================
+
+
+WHAT YOU NEED
+--------------
+  - Python 3.10 or higher       https://www.python.org/downloads/
+  - Visual Studio Code           https://code.visualstudio.com/
+  - An OpenRouter API key        https://openrouter.ai
+  - Internet connection
+
+
+----------------------------------------------------------------
+  STEP 1 — OPEN PROJECT IN VS CODE
+----------------------------------------------------------------
+
+  Option A — Drag and drop:
+    Drag the data_analyst folder onto the VS Code icon.
+
+  Option B — From VS Code:
+    File → Open Folder → select the data_analyst folder → Open
+
+  Option C — From terminal:
+    cd "path\to\data_analyst"
+    code .
+
+  Your Explorer panel (left sidebar) should show:
+
+    DATA_ANALYST/
+    ├── static/
+    │   ├── index.html
+    │   ├── preprocess.html
+    │   └── favicon.png
+    ├── agent.py
+    ├── config.py
+    ├── executor.py
+    ├── pdf.py
+    ├── preprocessor.py
+    ├── server.py
+    ├── utils.py
+    ├── requirements.txt
+    └── .env
+
+
+----------------------------------------------------------------
+  STEP 2 — INSTALL PYTHON EXTENSION (if not already)
+----------------------------------------------------------------
+
+  1. Click the Extensions icon in the left sidebar  (Ctrl+Shift+X)
+  2. Search for:  Python
+  3. Install the one by Microsoft
+  4. Restart VS Code if prompted
+
+
+----------------------------------------------------------------
+  STEP 3 — OPEN THE TERMINAL IN VS CODE
+----------------------------------------------------------------
+
+  Menu:  Terminal → New Terminal
+  Or:    Ctrl+`  (backtick key)
+
+  The terminal opens at the bottom of VS Code,
+  already pointing to your project folder.
+
+
+----------------------------------------------------------------
+  STEP 4 — CREATE VIRTUAL ENVIRONMENT
+----------------------------------------------------------------
+
+  In the VS Code terminal, run:
+
+    python -m venv .venv
+
+  Then activate it:
+
+    Windows (PowerShell — default in VS Code):
+      .\.venv\Scripts\Activate.ps1
+
+      If you get a security error, run this first then retry:
+        Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+    Windows (Command Prompt):
+      .venv\Scripts\activate
+
+    Mac / Linux:
+      source .venv/bin/activate
+
+  You should see (.venv) at the start of the terminal line.
+
+  VS Code may ask: "We noticed a new virtual environment was created.
+  Do you want to select it for this workspace?" — Click YES.
+  This sets the Python interpreter automatically.
+
+
+----------------------------------------------------------------
+  STEP 5 — SELECT PYTHON INTERPRETER IN VS CODE
+----------------------------------------------------------------
+
+  1. Press  Ctrl+Shift+P
+  2. Type:  Python: Select Interpreter
+  3. Choose the one that says:
+       .venv  ('.venv': venv)  — recommended
+
+  This ensures VS Code uses the project's virtual environment.
+
+
+----------------------------------------------------------------
+  STEP 6 — INSTALL DEPENDENCIES
+----------------------------------------------------------------
+
+  In the VS Code terminal (with .venv active):
+
+    pip install -r requirements.txt
+
+  Wait for all packages to install. This may take 1-2 minutes.
+
+  If scipy gives an error separately:
+    pip install scipy
+
+
+----------------------------------------------------------------
+  STEP 7 — SET UP YOUR API KEY
+----------------------------------------------------------------
+
+  1. Go to https://openrouter.ai — Sign up (free)
+  2. Go to Keys → Create a new API key → copy it
+
+  3. In VS Code Explorer, open the  .env  file
+     (If it does not exist, create a new file named  .env)
+
+  4. Add this line:
+       OPENROUTER_API_KEY=sk-or-your-key-here
+
+     Replace  sk-or-your-key-here  with your actual key.
+
+  5. Save the file  (Ctrl+S)
+
+  IMPORTANT: Never share the .env file. It contains your secret key.
+
+
+----------------------------------------------------------------
+  STEP 8 — RUN THE PROJECT
+----------------------------------------------------------------
+
+  In the VS Code terminal (with .venv active), run:
+
+    python server.py
+
+  You will see:
+    * Running on http://127.0.0.1:5050
+    * Running on http://192.168.x.x:5050
+
+  Open your browser and go to:
+    http://localhost:5050
+
+  To stop the server:  press  Ctrl+C  in the terminal
+
+
+----------------------------------------------------------------
+  RUNNING AGAIN LATER (Quick Start)
+----------------------------------------------------------------
+
+  1. Open VS Code
+  2. File → Open Folder → select data_analyst
+  3. Open terminal  (Ctrl+`)
+  4. Activate virtual environment:
+       .\.venv\Scripts\Activate.ps1       (Windows PowerShell)
+       source .venv/bin/activate           (Mac/Linux)
+  5. Run:
+       python server.py
+  6. Open browser:  http://localhost:5050
+
+  To stop:  Ctrl+C in terminal
+
+
+----------------------------------------------------------------
+  EDITING THE PROJECT IN VS CODE
+----------------------------------------------------------------
+
+  Navigate with Ctrl+Shift+O (Go to Symbol) to jump between
+  functions without scrolling.
+
+  Key files and what to edit:
+
+    agent.py          Change AI prompts and model behaviour
+    config.py         Change model or API settings
+    executor.py       Change code execution timeout / sandbox
+    server.py         Add or edit API routes
+    utils.py          Shared helper functions
+    pdf.py            Change PDF report styling
+    preprocessor.py   Add new preprocessing transformations
+
+    static/index.html       Edit the Analyse tab UI
+    static/preprocess.html  Edit the Preprocess tab UI
+
+  Use Ctrl+F and search for  # ===  to jump between
+  major sections inside each file.
+
+
+----------------------------------------------------------------
+  TROUBLESHOOTING
+----------------------------------------------------------------
+
+  Error: ModuleNotFoundError: No module named 'flask'
+  Fix:   Make sure .venv is active, then:
+           pip install -r requirements.txt
+
+  Error: No module named 'scipy'
+  Fix:   pip install scipy
+
+  Error: 404 Not Found on homepage
+  Fix:   Confirm static/index.html exists in the project
+
+  Error: API key invalid
+  Fix:   Open .env and check OPENROUTER_API_KEY is correct
+         No spaces around the = sign
+
+  Error: Address already in use (port 5050)
+  Fix:   Another process is using port 5050.
+         Open server.py, find the last line and change:
+           port=5050  to  port=5051
+         Then open http://localhost:5051
+
+  Error: .venv\Scripts\Activate.ps1 cannot be loaded
+  Fix:   Run in terminal:
+           Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
+         Then try activating again.
+
+  Error: 'python' is not recognized as a command
+  Fix:   Reinstall Python from https://www.python.org
+         Check "Add Python to PATH" during installation.
+         Restart VS Code after reinstalling.
+
+  VS Code shows red underlines in Python files:
+  Fix:   Press Ctrl+Shift+P → Python: Select Interpreter
+         Choose the .venv interpreter
+
+
+----------------------------------------------------------------
+  PROJECT FEATURES
+----------------------------------------------------------------
+
+  ANALYSE TAB        http://localhost:5050
+    - Upload CSV or Excel (multiple files supported)
+    - AI agent autonomously explores your data
+    - Collapsible iteration cards showing analysis steps
+    - Final report: Key Findings, Trends, Recommendations
+    - Chart gallery with zoom support
+    - Ask follow-up questions on any finding
+    - Export report as PDF
+    - History panel — restore previous analyses
+    - Send dataset directly to Preprocessor tab
+
+  PREPROCESS TAB     http://localhost:5050/preprocess
+    - Smart recommendations auto-detected from your data
+    - Missing value handling (drop, fill mean/median/mode/custom)
+    - Data type conversion (numeric, datetime, boolean, category)
+    - Outlier detection — IQR or Z-score, cap or remove
+    - Encoding — label, one-hot for categorical columns
+    - Scaling — StandardScaler, MinMaxScaler, RobustScaler
+    - Feature engineering — datetime extraction, log transform
+    - Download cleaned CSV — ready for ML models
+    - Download preprocessing.py — reproducible Python script
+    - Send cleaned dataset back to Analyser tab
+
+
+================================================================
+  Built with Flask · OpenRouter AI · pandas · ReportLab
+  Project: data_analyst
+================================================================

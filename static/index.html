@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Agentic Analyser</title>
+<link rel="icon" type="image/png" href="/static/favicon.png"/>
+<style>
+  :root {
+    --bg:       #18181c;
+    --surface:  #1e1e24;
+    --surface2: #26262e;
+    --surface3: #2c2c36;
+    --border:   #2a2a34;
+    --border2:  #36363f;
+    --accent:   #c8ff3e;
+    --accent2:  #a8d832;
+    --accent3:  #d4ff66;
+    --text:     #ededeb;
+    --text2:    #a8a8b0;
+    --text3:    #6b6b78;
+    --danger:   #ff6b6b;
+    --teal:     #3effb4;
+    --radius:   8px;
+    --radius-lg:12px;
+    --font:     'Inter','Segoe UI',system-ui,sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    height: 54px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .logo-text { font-size: 1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.3px; }
+  .logo-sub  { font-size: 0.7rem; color: var(--text3); margin-top: 1px; }
+  .model-pill {
+    margin-left: auto;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 11px;
+    font-size: 0.7rem;
+    color: var(--text3);
+    font-family: monospace;
+  }
+
+  /* LAYOUT */
+  .layout { display: flex; flex: 1; overflow: hidden; height: calc(100vh - 54px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .s-block { padding: 16px 16px 0; }
+  .s-sep   { height: 1px; background: var(--border); margin-top: 16px; }
+
+  .field-label {
+    font-size: 0.67rem;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    display: block;
+    margin-bottom: 7px;
+  }
+
+  /* UPLOAD */
+  .upload-zone {
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+    background: var(--surface2);
+  }
+  .upload-zone:hover, .upload-zone.drag {
+    border-color: var(--accent);
+    background: rgba(200,255,62,.04);
+  }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-text { font-size: 0.78rem; color: var(--text2); margin-bottom: 3px; }
+  .upload-hint { font-size: 0.68rem; color: var(--text3); }
+  .file-name   { font-size: 0.75rem; color: var(--accent); margin-top: 6px; font-weight: 500; word-break: break-all; }
+
+  /* SUGGESTIONS */
+  .sug-list   { display: flex; flex-direction: column; gap: 5px; }
+  .sug-item   {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    font-size: 0.75rem;
+    color: var(--text2);
+    cursor: pointer;
+    transition: border-color .15s, color .15s;
+    line-height: 1.45;
+  }
+  .sug-item:hover { border-color: var(--accent); color: var(--text); }
+  .sug-loading { font-size: 0.72rem; color: var(--text3); font-style: italic; }
+
+  /* FORM */
+  textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    outline: none;
+    resize: vertical;
+    transition: border-color .15s;
+    min-height: 64px;
+  }
+  textarea:focus { border-color: var(--accent); }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    gap: 7px; padding: 9px 16px;
+    border-radius: var(--radius); border: none; cursor: pointer;
+    font-size: 0.81rem; font-weight: 600; font-family: inherit;
+    transition: all .15s; width: 100%;
+  }
+  .btn-primary { background: var(--accent); color: #111; }
+  .btn-primary:hover { background: var(--accent3); }
+  .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border2); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--text); }
+  .btn-danger { background: rgba(255,107,107,.1); color: var(--danger); border: 1px solid rgba(255,107,107,.25); }
+  .btn-danger:hover { background: rgba(255,107,107,.18); }
+
+  /* MAIN */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .feed {
+    flex: 1; overflow-y: auto;
+    padding: 20px 24px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  /* EMPTY */
+  .empty-state { margin: auto; text-align: center; color: var(--text3); max-width: 340px; }
+  .empty-state h3 { font-size: 0.9rem; color: var(--text2); margin-bottom: 7px; font-weight: 600; }
+  .empty-state p  { font-size: 0.78rem; line-height: 1.7; }
+
+  /* THINKING */
+  .thinking-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  }
+  .spinner {
+    width: 16px; height: 16px; flex-shrink: 0;
+    border: 2px solid var(--border2); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .75s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .thinking-label { font-size: 0.78rem; color: var(--text2); }
+
+  /* ITERATION CARD — hidden from feed, runs in background */
+  .iter-card {
+    display: none !important;
+  }
+  .iter-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; cursor: pointer;
+    background: var(--surface2); user-select: none;
+    transition: background .15s;
+  }
+  .iter-header:hover { background: var(--surface3); }
+  .iter-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent);
+  }
+  .iter-dot.error { background: var(--danger); }
+  .iter-dot.done  { background: var(--teal); }
+  .iter-title  { font-size: 0.77rem; font-weight: 600; color: var(--text2); flex: 1; }
+  .iter-status { font-size: 0.67rem; color: var(--text3); }
+  .iter-status.done { color: var(--teal); }
+  .iter-chevron {
+    width: 13px; height: 13px; stroke: var(--text3); fill: none; stroke-width: 2;
+    transition: transform .2s; flex-shrink: 0;
+  }
+  .iter-chevron.open { transform: rotate(180deg); }
+
+  .progress-bar  { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 5px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s; }
+
+  .iter-body { display: none; padding: 12px 14px; border-top: 1px solid var(--border); }
+  .iter-body.open { display: block; }
+
+  /* STEP */
+  .step { margin-bottom: 9px; }
+  .step:last-child { margin-bottom: 0; }
+  .step-label {
+    font-size: 0.66rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.7px; color: var(--text3); margin-bottom: 4px;
+  }
+  .step-label.ok  { color: var(--teal); }
+  .step-label.err { color: var(--danger); }
+  .tool-summary {
+    background: var(--surface2); border-radius: var(--radius);
+    padding: 8px 11px; font-size: 0.76rem; color: var(--text2); line-height: 1.6;
+  }
+  .out-line     { margin-bottom: 2px; }
+  .out-line:last-child { margin-bottom: 0; }
+  .err-line     { color: var(--danger); }
+
+  /* PLOT */
+  .plot-wrap { margin-top: 10px; }
+  .plot-wrap img { max-width: 100%; max-height: 400px; width: auto; object-fit: contain; border-radius: var(--radius); border: 1px solid var(--border); display: block; }
+
+  /* FINAL REPORT */
+  .report-card {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(200,255,62,.06);
+  }
+  .report-header {
+    padding: 11px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--accent);
+  }
+  .report-body { padding: 16px 18px; }
+  .report-section { margin-bottom: 16px; }
+  .report-section:last-child { margin-bottom: 0; }
+  .report-section-title {
+    font-size: 0.67rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--accent);
+    margin-bottom: 9px; padding-bottom: 5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-bullets { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .report-bullets li {
+    display: flex; gap: 9px; align-items: flex-start;
+    font-size: 0.81rem; color: var(--text2); line-height: 1.65;
+  }
+  .bullet-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--accent); flex-shrink: 0; margin-top: 7px;
+  }
+  .report-bullets strong { color: var(--text); font-weight: 600; }
+
+  /* FOLLOWUP */
+  .followup-bar {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0;
+  }
+  .followup-bar textarea { flex: 1; min-height: 40px; max-height: 100px; }
+  .followup-bar .btn { width: auto; padding: 9px 18px; flex-shrink: 0; }
+
+  /* FOLLOWUP ANSWER */
+  .fup-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+  .fup-header { padding: 8px 14px; background: var(--surface2); border-bottom: 1px solid var(--border); font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); }
+  .fup-body   { padding: 12px 14px; font-size: 0.81rem; color: var(--text2); line-height: 1.7; }
+  .fup-body strong { color: var(--text); }
+
+  /* CHART GALLERY */
+  .gallery-section { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; }
+  .gallery-heading { font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--text3); margin-bottom: 10px; }
+  .gallery-grid    { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; }
+  .gallery-item    { flex-shrink: 0; }
+  .gallery-item img{ height: 200px; width: auto; max-width: 360px; object-fit: contain; border-radius: var(--radius); border: 1px solid var(--border); display: block; cursor: zoom-in; transition: transform .2s; background: var(--surface2); }
+  .gallery-item img:hover { transform: scale(1.03); }
+  .gallery-label   { font-size: .68rem; color: var(--text3); text-align: center; margin-top: 4px; }
+
+  /* ASK BUTTON */
+  .ask-btn {
+    margin-left: 8px; flex-shrink: 0;
+    background: transparent; border: 1px solid var(--border2);
+    border-radius: 4px; color: var(--text3); font-size: .65rem;
+    font-weight: 600; padding: 1px 7px; cursor: pointer;
+    font-family: inherit; transition: border-color .15s, color .15s;
+    white-space: nowrap;
+  }
+  .ask-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .report-bullets li { align-items: flex-start; }
+
+  /* RATE LIMIT CARD */
+  .rate-card {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px;
+    background: rgba(255,179,71,.07); border: 1px solid rgba(255,179,71,.25);
+    border-radius: var(--radius-lg); font-size: .78rem; color: var(--orange);
+  }
+  .rate-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); flex-shrink: 0; animation: pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* SEND TO ANALYSE */
+  .send-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent); color: #111; border: none;
+    border-radius: var(--radius); padding: 7px 14px;
+    font-size: .78rem; font-weight: 700; cursor: pointer;
+    font-family: inherit; transition: background .15s; margin-top: 10px;
+  }
+  .send-btn:hover { background: var(--accent3); }
+
+  /* LIGHTBOX */
+  .lightbox { position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;cursor:zoom-out; }
+  .lightbox img { max-width:92vw; max-height:92vh; border-radius:var(--radius); border:1px solid var(--border); }
+
+  /* HISTORY PANEL */
+  .history-panel {
+    position: fixed; top: 54px; right: 0; bottom: 0; width: 300px;
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; z-index: 100;
+    transform: translateX(100%); transition: transform .25s ease;
+  }
+  .history-panel.open { transform: translateX(0); }
+  .history-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    font-size: .78rem; font-weight: 700; color: var(--text); flex-shrink: 0;
+  }
+  .history-close {
+    background: none; border: none; cursor: pointer;
+    color: var(--text3); font-size: 1rem; padding: 0 4px;
+  }
+  .history-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 7px; }
+  .history-item {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 10px 12px; cursor: pointer;
+    transition: border-color .15s;
+  }
+  .history-item:hover { border-color: var(--accent); }
+  .history-item-name { font-size: .78rem; font-weight: 600; color: var(--text); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-item-date { font-size: .68rem; color: var(--text3); }
+  .history-item-del  { float: right; background: none; border: none; color: var(--text3); cursor: pointer; font-size: .75rem; padding: 0; }
+  .history-item-del:hover { color: var(--danger); }
+  .history-btn {
+    background: none; border: 1px solid var(--border2); border-radius: var(--radius);
+    color: var(--text2); font-size: .72rem; font-weight: 600; cursor: pointer;
+    padding: 5px 10px; font-family: inherit; transition: border-color .15s, color .15s;
+  }
+  .history-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .history-empty { font-size: .75rem; color: var(--text3); text-align: center; padding: 24px 10px; font-style: italic; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  @media (max-width:700px) {
+    .layout { flex-direction: column; }
+    .sidebar { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="margin-right:28px">
+    <div class="logo-text">Agentic Analyser</div>
+    <div class="logo-sub">Autonomous Data Intelligence</div>
+  </div>
+  <a href="/" style="padding:0 18px;height:54px;display:flex;align-items:center;font-size:.8rem;font-weight:600;color:var(--accent);cursor:pointer;border-bottom:2px solid var(--accent);text-decoration:none">Analyse</a>
+  <a href="/preprocess" style="padding:0 18px;height:54px;display:flex;align-items:center;font-size:.8rem;font-weight:600;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;text-decoration:none;transition:color .15s">Preprocess</a>
+  <div class="model-pill" id="modelBadge">Connecting…</div>
+  <button class="history-btn" id="historyToggle" style="margin-left:10px">History</button>
+</header>
+
+<!-- HISTORY PANEL -->
+<div class="history-panel" id="historyPanel">
+  <div class="history-header">
+    Recent Analyses
+    <button class="history-close" id="historyClose">✕</button>
+  </div>
+  <div class="history-list" id="historyList">
+    <div class="history-empty">No saved analyses yet.</div>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="s-block" style="padding-top:18px">
+      <span class="field-label">Dataset</span>
+      <div class="upload-zone" id="dropZone">
+        <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" multiple/>
+        <div class="upload-text">Drop file here or click to browse</div>
+        <div class="upload-hint">CSV · XLSX · XLS &nbsp;·&nbsp; Multiple files supported</div>
+        <div class="file-name" id="fileName"></div>
+      </div>
+    </div>
+
+    <div id="suggestWrap" style="display:none">
+      <div class="s-sep"></div>
+      <div class="s-block" style="padding-top:14px">
+        <span class="field-label">Suggested Questions</span>
+        <div class="sug-list" id="suggestions">
+          <div class="sug-loading">Generating suggestions…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="s-sep"></div>
+
+    <div class="s-block" style="padding-top:14px">
+      <span class="field-label">Question</span>
+      <textarea id="question" rows="3" placeholder="e.g. What are the key revenue drivers?"></textarea>
+    </div>
+
+
+
+    <div class="s-block" style="padding-top:12px">
+      <button class="btn btn-primary" id="runBtn" disabled>Run Analysis</button>
+    </div>
+
+    <div id="exportWrap" style="display:none">
+      <div class="s-block" style="padding-top:8px">
+        <button class="btn btn-primary" id="sendToPrepBtn">Send to Preprocessor</button>
+      </div>
+      <div class="s-block" style="padding-top:6px">
+        <button class="btn btn-secondary" id="exportBtn">Export PDF Report</button>
+      </div>
+      <div class="s-block" style="padding-top:6px">
+        <button class="btn btn-secondary" id="exportExcelBtn">Export Excel Report</button>
+      </div>
+    </div>
+
+    <div id="resetWrap" style="display:none">
+      <div class="s-block" style="padding-top:6px; padding-bottom:18px">
+        <button class="btn btn-danger" id="resetBtn">New Analysis</button>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- FEED -->
+  <div class="main">
+    <div class="feed" id="feed">
+      <div class="empty-state">
+        <h3>Ready to Analyse</h3>
+        <p>Upload a dataset, select a question, and the agent will autonomously explore your data and generate a structured report.</p>
+      </div>
+    </div>
+
+    <div class="followup-bar" id="followupBar" style="display:none">
+      <textarea id="followupInput" placeholder="Ask a follow-up question…" rows="1"></textarea>
+      <button class="btn btn-primary" id="followupBtn" style="white-space:nowrap">Send</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let sessionId = null, isRunning = false;
+let currentIterCard = null, currentIterBody = null, currentIterOk = true;
+let thinkingCard = null;
+let allPlots = [];  // collect every chart across all iterations
+
+const fileInput     = document.getElementById('fileInput');
+const dropZone      = document.getElementById('dropZone');
+const fileNameEl    = document.getElementById('fileName');
+const questionEl    = document.getElementById('question');
+const runBtn        = document.getElementById('runBtn');
+const feed          = document.getElementById('feed');
+const suggestWrap   = document.getElementById('suggestWrap');
+const suggestionsEl = document.getElementById('suggestions');
+const exportWrap    = document.getElementById('exportWrap');
+const resetWrap     = document.getElementById('resetWrap');
+const followupBar   = document.getElementById('followupBar');
+const followupInput = document.getElementById('followupInput');
+const followupBtn   = document.getElementById('followupBtn');
+const modelBadge    = document.getElementById('modelBadge');
+
+fetch('/model').then(r=>r.json()).then(d=>{ modelBadge.textContent = d.model }).catch(()=>{});
+
+
+// Check if a cleaned CSV was sent from the Preprocessor via URL param
+(async function checkPendingCsv() {
+  const params    = new URLSearchParams(window.location.search);
+  const prepSid   = params.get('prep_session');
+  if (!prepSid) return;
+
+  // Clean the URL without reloading
+  window.history.replaceState({}, '', '/');
+
+  showBanner('Loading cleaned dataset from Preprocessor…');
+
+  try {
+    // Fetch the cleaned CSV as binary from the server
+    const resp = await fetch('/prep/get_csv/' + encodeURIComponent(prepSid));
+    if (!resp.ok) { showBanner('Could not load cleaned dataset.'); return; }
+
+    // Get filename from Content-Disposition header or fallback
+    const disp     = resp.headers.get('Content-Disposition') || '';
+    const nameMatch = disp.match(/filename=([^;]+)/);
+    const filename  = nameMatch ? nameMatch[1].trim() : 'cleaned_dataset.csv';
+
+    const arrayBuf = await resp.arrayBuffer();
+    const blob     = new Blob([arrayBuf], { type: 'text/csv' });
+    const file     = new File([blob], filename, { type: 'text/csv' });
+
+    // Inject into file input
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+
+    showBanner('Cleaned dataset loaded: ' + filename);
+    await handleFile(fileInput.files);
+  } catch(e) {
+    showBanner('Failed to load cleaned dataset: ' + e);
+  }
+})();
+
+function showBanner(msg) {
+  const b = document.createElement('div');
+  b.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--accent);border-radius:var(--radius);padding:9px 18px;font-size:.78rem;color:var(--accent);z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.4)';
+  b.textContent = msg;
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 4000);
+}
+
+// FILE
+dropZone.addEventListener('dragover',  e=>{ e.preventDefault(); dropZone.classList.add('drag') });
+dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e=>{ e.preventDefault(); dropZone.classList.remove('drag'); if(e.dataTransfer.files.length) handleFile(e.dataTransfer.files); });
+fileInput.addEventListener('change', ()=>{ if(fileInput.files.length) handleFile(fileInput.files) });
+
+async function handleFile(files) {
+  // files is a FileList
+  const names = Array.from(files).map(f => f.name);
+  fileNameEl.textContent = names.join(', ');
+  runBtn.disabled = false;
+
+  // Show file chips
+  renderFileChips(Array.from(files));
+
+  // Suggestions based on first file only
+  suggestWrap.style.display = 'block';
+  suggestionsEl.innerHTML = '<div class="sug-loading">Generating suggestions…</div>';
+  const fd = new FormData(); fd.append('file', files[0]);
+  try {
+    const colRes  = await fetch('/columns', { method:'POST', body:fd });
+    const colData = await colRes.json();
+    if (!colData.columns?.length) { suggestionsEl.innerHTML = '<div class="sug-loading">Could not read columns.</div>'; return; }
+    window._lastColumns = colData.columns;
+    window._lastDtypes  = colData.dtypes;
+    const sugRes  = await fetch('/suggest', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ columns: colData.columns, dtypes: colData.dtypes })
+    });
+    const sugData = await sugRes.json();
+    const qs = sugData.questions || [];
+    if (!qs.length) { suggestionsEl.innerHTML = '<div class="sug-loading">No suggestions returned.</div>'; return; }
+    suggestionsEl.innerHTML = '';
+    qs.forEach(q => {
+      const d = document.createElement('div');
+      d.className = 'sug-item'; d.textContent = q;
+      d.addEventListener('click', ()=>{ questionEl.value = q });
+      suggestionsEl.appendChild(d);
+    });
+  } catch(err) {
+    suggestionsEl.innerHTML = '<div class="sug-loading">Suggestions unavailable.</div>';
+    console.error(err);
+  }
+}
+
+function renderFileChips(files) {
+  let chips = document.getElementById('fileChips');
+  if (!chips) {
+    chips = document.createElement('div');
+    chips.id = 'fileChips';
+    chips.style.cssText = 'display:flex;flex-wrap:wrap;gap:5px;margin-top:8px';
+    dropZone.parentNode.insertBefore(chips, dropZone.nextSibling);
+  }
+  chips.innerHTML = '';
+  files.forEach(f => {
+    const chip = document.createElement('div');
+    chip.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:3px 8px;font-size:0.7rem;color:var(--accent);display:flex;align-items:center;gap:5px';
+    const cleanName = f.name.length > 20 ? f.name.substring(0,18) + '…' : f.name;
+    chip.innerHTML = `<span title="${f.name}" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${cleanName}</span>`;
+    chips.appendChild(chip);
+  });
+}
+
+// RUN
+runBtn.addEventListener('click', startAnalysis);
+async function startAnalysis() {
+  if (isRunning || !fileInput.files[0]) return;
+  isRunning = true; runBtn.disabled = true;
+  clearFeed();
+  exportWrap.style.display = resetWrap.style.display = followupBar.style.display = 'none';
+
+  // Auto-generate question from dataset columns if blank
+  let question = questionEl.value.trim();
+  if (!question) {
+    question = autoQuestion();
+    questionEl.value = question;
+  }
+
+  // Show spinner immediately before any network call
+  const loadDiv = document.createElement('div');
+  loadDiv.className = 'thinking-card';
+  loadDiv.id = 'initialLoader';
+  loadDiv.innerHTML = '<div class="spinner"></div><div style="flex:1"><div class="thinking-label">Uploading and reading dataset…</div><div class="progress-bar"><div class="progress-fill" style="width:15%"></div></div></div>';
+  feed.appendChild(loadDiv);
+  thinkingCard = loadDiv;
+
+  const fd = new FormData();
+  Array.from(fileInput.files).forEach(f => fd.append('file', f));
+  fd.append('question', question);
+  fd.append('max_iterations', 8);  // fixed iterations, runs in background
+  try {
+    const response = await fetch('/analyse', { method:'POST', body:fd });
+    if (!response.ok) {
+      loadDiv.remove(); thinkingCard = null;
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);border-radius:var(--radius-lg);padding:14px 16px;font-size:.8rem;color:var(--danger)';
+      errDiv.innerHTML = '<strong>Server Error</strong><br>Could not start analysis. Check the server terminal for details.';
+      feed.appendChild(errDiv);
+      isRunning = false; runBtn.disabled = false;
+      return;
+    }
+    await consumeSSE(response);
+  } catch(e) {
+    loadDiv.remove(); thinkingCard = null;
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);border-radius:var(--radius-lg);padding:14px 16px;font-size:.8rem;color:var(--danger)';
+    errDiv.innerHTML = '<strong>Connection Error</strong><br>' + e.message;
+    feed.appendChild(errDiv);
+    isRunning = false; runBtn.disabled = false;
+  }
+}
+
+function autoQuestion() {
+  // Build a smart default question from the loaded column info
+  if (!window._lastColumns || !window._lastColumns.length) {
+    return 'Give a full exploratory analysis of this dataset — key trends, distributions, correlations, and anomalies.';
+  }
+  const cols   = window._lastColumns;
+  const dtypes = window._lastDtypes || {};
+  const numCols = cols.filter(c => (dtypes[c]||'').includes('float') || (dtypes[c]||'').includes('int'));
+  const catCols = cols.filter(c => !(dtypes[c]||'').includes('float') && !(dtypes[c]||'').includes('int') && !(dtypes[c]||'').includes('date'));
+  let q = 'Provide a full exploratory analysis of this dataset.';
+  if (numCols.length && catCols.length) {
+    q = `How does ${numCols[0]} vary across different ${catCols[0]} values? Include distributions, trends, and key statistical insights.`;
+  } else if (numCols.length >= 2) {
+    q = `What is the relationship between ${numCols[0]} and ${numCols[1]}? Include correlation analysis and key trends.`;
+  } else if (catCols.length) {
+    q = `What are the most important patterns and distributions in this dataset? Focus on ${catCols.slice(0,2).join(' and ')}.`;
+  }
+  return q;
+}
+
+// FOLLOWUP
+followupBtn.addEventListener('click', sendFollowup);
+followupInput.addEventListener('keydown', e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendFollowup();} });
+async function sendFollowup() {
+  const q = followupInput.value.trim();
+  if (!q || !sessionId || isRunning) return;
+  isRunning = true; followupBtn.disabled = true; followupInput.value = '';
+  addFupQuestion(q);
+  await consumeSSE(await fetch('/followup', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ session_id: sessionId, question: q })
+  }));
+}
+
+// SSE
+async function consumeSSE(res) {
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream:true });
+    const parts = buf.split('\n\n'); buf = parts.pop();
+    for (const p of parts) handleSSE(p);
+  }
+}
+
+function handleSSE(raw) {
+  let event='', dataStr='';
+  for (const l of raw.split('\n')) {
+    if (l.startsWith('event: ')) event   = l.slice(7).trim();
+    if (l.startsWith('data: '))  dataStr = l.slice(6).trim();
+  }
+  if (!event || !dataStr) return;
+  let data; try { data = JSON.parse(dataStr); } catch { return; }
+
+  if (event === 'session') {
+    sessionId = data.session_id;
+
+  } else if (event === 'thinking') {
+    // Only create the thinking card once — update it on subsequent iterations
+    if (!thinkingCard) {
+      const div = document.createElement('div');
+      div.className = 'thinking-card';
+      div.innerHTML = `
+        <div class="spinner"></div>
+        <div style="flex:1">
+          <div class="thinking-label">Analysing your data…</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+        </div>`;
+      feed.appendChild(div);
+      thinkingCard = div;
+    }
+    const lbl  = thinkingCard.querySelector('.thinking-label');
+    const fill = thinkingCard.querySelector('.progress-fill');
+    if (lbl)  lbl.textContent  = data.label || `Analysing… (step ${data.iteration} of ${data.total})`;
+    if (fill) fill.style.width = Math.round((data.iteration / data.total) * 100) + '%';
+    closeCurrentIter();
+    currentIterOk = true;
+    const { card, body } = makeIterCard(data.iteration, data.total, data.label);
+    currentIterCard = card; currentIterBody = body;
+    // Show rate-limit warning if label mentions it
+    if (data.label && data.label.toLowerCase().includes('rate')) {
+      showRateCard(data.label);
+    }
+
+  } else if (event === 'agent') {
+    const summary = extractSummary(data.content);
+    if (summary && currentIterBody) addStep(currentIterBody, 'Analysis', summary, false);
+
+  } else if (event === 'tool') {
+    if (currentIterBody) {
+      const ok = data.status === 'Success';
+      if (!ok) currentIterOk = false;
+      const lines = parseToolOutput(data.content);
+      addStep(currentIterBody, ok ? 'Result' : 'Error', lines.join('\n'), !ok);
+      const dot  = currentIterCard?.querySelector('.iter-dot');
+      const stat = currentIterCard?.querySelector('.iter-status');
+      if (!ok && dot) dot.classList.add('error');
+      if (stat) { stat.textContent = ok ? 'Done' : 'Error'; if(ok) stat.classList.add('done'); }
+      if (data.plot) {
+        allPlots.push(data.plot);
+        const w = document.createElement('div'); w.className = 'plot-wrap';
+        w.innerHTML = `<img src="data:image/png;base64,${data.plot}" alt="Chart" style="max-height:320px;width:auto;max-width:100%;cursor:zoom-in"/>`;
+        currentIterBody.appendChild(w);
+      }
+    }
+
+  } else if (event === 'final_report') {
+    removeThinking(); closeCurrentIter();
+    if (data.plot) allPlots.push(data.plot);
+    addFinalReport(data.content, allPlots);
+    exportWrap.style.display = 'block';
+
+  } else if (event === 'followup_answer') {
+    removeThinking(); closeCurrentIter();
+    addFupAnswer(data.content);
+
+  } else if (event === 'error') {
+    removeThinking();
+    const errCard = document.createElement('div');
+    errCard.style.cssText = 'background:rgba(255,107,107,.1);border:1px solid rgba(255,107,107,.3);border-radius:var(--radius-lg);padding:14px 16px;font-size:.8rem;color:var(--danger)';
+    errCard.innerHTML = `<strong>Analysis Error</strong><br>${data.message || 'An unexpected error occurred. Please try again.'}`;
+    feed.appendChild(errCard);
+    scrollFeed();
+
+  } else if (event === 'done') {
+    isRunning = false; runBtn.disabled = false;
+    followupBtn.disabled = false;
+    followupBar.style.display = 'flex';
+    resetWrap.style.display   = 'block';
+    removeThinking(); closeCurrentIter();
+  }
+  scrollFeed();
+}
+
+// ITER CARD
+function makeIterCard(iter, total) {
+  const card = document.createElement('div');
+  card.className = 'iter-card';
+  const pct = Math.round((iter / total) * 100);
+  card.innerHTML = `
+    <div class="iter-header">
+      <div class="iter-dot"></div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <div class="iter-title">Iteration ${iter}</div>
+          <div class="iter-status">Running…</div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      </div>
+      <svg class="iter-chevron" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="iter-body"></div>`;
+  const header = card.querySelector('.iter-header');
+  const body   = card.querySelector('.iter-body');
+  const chev   = card.querySelector('.iter-chevron');
+  header.addEventListener('click', ()=>{ const open = body.classList.toggle('open'); chev.classList.toggle('open', open); });
+  return { card, body };
+}
+
+function closeCurrentIter() {
+  if (currentIterCard) {
+    const stat = currentIterCard.querySelector('.iter-status');
+    const dot  = currentIterCard.querySelector('.iter-dot');
+    const fill = currentIterCard.querySelector('.progress-fill');
+    const body = currentIterCard.querySelector('.iter-body');
+    const chev = currentIterCard.querySelector('.iter-chevron');
+    if (stat && stat.textContent === 'Running…') { stat.textContent = 'Done'; stat.classList.add('done'); }
+    if (dot && currentIterOk) dot.classList.add('done');
+    if (fill) fill.style.width = '100%';
+    if (body && currentIterOk) { body.classList.remove('open'); if(chev) chev.classList.remove('open'); }
+  }
+  currentIterCard = null; currentIterBody = null;
+}
+
+function addStep(body, label, text, isError) {
+  const div = document.createElement('div'); div.className = 'step';
+  const cls = isError ? 'err' : (label === 'Result' ? 'ok' : '');
+  div.innerHTML = `<div class="step-label ${cls}">${label}</div>`;
+  const s = document.createElement('div'); s.className = 'tool-summary';
+  text.split('\n').filter(l=>l.trim()).forEach(line => {
+    const p = document.createElement('div');
+    p.className = 'out-line' + (isError ? ' err-line' : '');
+    p.textContent = line; s.appendChild(p);
+  });
+  div.appendChild(s); body.appendChild(div);
+}
+
+// FINAL REPORT
+function addFinalReport(content, plots) {
+  // plots is now an array of all base64 charts collected across iterations
+  const plotsArr = Array.isArray(plots) ? plots : (plots ? [plots] : []);
+  const card = document.createElement('div'); card.className = 'report-card';
+  const sections = parseReportSections(content);
+
+  // Build sections with "Ask about this" buttons on each bullet
+  const sectHtml = sections.map(sec => `
+    <div class="report-section">
+      <div class="report-section-title">${sec.title}</div>
+      <ul class="report-bullets">${sec.bullets.map(b => `
+        <li>
+          <div class="bullet-dot"></div>
+          <span>${mdInline(b)}</span>
+          <button class="ask-btn" onclick="askAbout(this)" data-text="${b.replace(/"/g,'&quot;')}">Ask</button>
+        </li>`).join('')}
+      </ul>
+    </div>`).join('');
+
+  // Chart gallery
+  let galleryHtml = '';
+  if (plotsArr.length) {
+    const imgs = plotsArr.map((p,i) => `
+      <div class="gallery-item">
+        <img src="data:image/png;base64,${p}" alt="Chart ${i+1}"/>
+        <div class="gallery-label">Chart ${i+1}</div>
+      </div>`).join('');
+    galleryHtml = `
+      <div class="gallery-section">
+        <div class="gallery-heading">Charts</div>
+        <div class="gallery-grid">${imgs}</div>
+      </div>`;
+  }
+
+  card.innerHTML = `<div class="report-header">Final Report</div><div class="report-body">${sectHtml}${galleryHtml}</div>`;
+  feed.appendChild(card);
+}
+
+function parseReportSections(md) {
+  // Strip code blocks and any "Final Report" heading lines
+  let clean = md.replace(/```[\s\S]*?```/g, '').trim();
+  clean = clean.replace(/^#{1,3}\s*Final Report\s*$/im, '').trim();
+  // Remove orphan intro sentences before first section heading
+  // (lines that aren't bullets and appear before any ## heading)
+  const firstHeading = clean.search(/^#{1,3}\s/m);
+  if (firstHeading > 0) {
+    const before = clean.slice(0, firstHeading).trim();
+    // Only keep if it's actual bullet content, not a plain sentence intro
+    if (!before.startsWith('-') && !before.startsWith('*') && !before.match(/^\d+\./)) {
+      clean = clean.slice(firstHeading).trim();
+    }
+  }
+
+  const lines   = clean.split('\n');
+  const sections = [];
+  let current   = null;
+
+  for (const raw of lines) {
+    const l = raw.trim();
+    if (!l || l === '---') continue;
+
+    // Section heading: ## or ###
+    if (/^#{1,3}\s/.test(l)) {
+      if (current && current.bullets.length) sections.push(current);
+      else if (current && !current.bullets.length) { /* skip empty headings */ }
+      current = { title: l.replace(/^#+\s*/, '').replace(/\*+/g,'').trim(), bullets: [] };
+      continue;
+    }
+
+    // Bullet: -, *, •, numbered
+    const bulletMatch = l.match(/^[-*•]\s+(.+)/) || l.match(/^\d+[.):]\s+(.+)/);
+    if (bulletMatch) {
+      if (!current) current = { title: 'Key Findings', bullets: [] };
+      const text = bulletMatch[1].trim();
+      if (text) current.bullets.push(text);
+      continue;
+    }
+
+    // Bold line acting as a bullet: **Foo**: bar
+    if (/^\*\*/.test(l)) {
+      if (!current) current = { title: 'Key Findings', bullets: [] };
+      current.bullets.push(l.replace(/\*+/g, '').trim());
+      continue;
+    }
+
+    // Plain sentence — add as bullet to current section
+    if (l.length > 15) {
+      if (!current) current = { title: 'Key Findings', bullets: [] };
+      current.bullets.push(l);
+    }
+  }
+
+  if (current && current.bullets.length) sections.push(current);
+
+  // Fallback: split into sentences
+  if (!sections.length || sections.every(s => !s.bullets.length)) {
+    const sentences = clean.match(/[^.!?\n]+[.!?]+/g) || [];
+    const bullets   = sentences.map(s => s.trim()).filter(s => s.length > 10);
+    if (bullets.length) {
+      return [{ title: 'Key Findings', bullets: bullets.slice(0, 8) }];
+    }
+    // Last resort: split by newline
+    const lines2 = clean.split('\n').map(l=>l.trim()).filter(l=>l.length>10);
+    return [{ title: 'Key Findings', bullets: lines2.slice(0, 8) }];
+  }
+
+  return sections;
+}
+
+// FOLLOWUP
+function addFupQuestion(q) {
+  const card = document.createElement('div'); card.className = 'fup-card';
+  card.innerHTML = `<div class="fup-header">Follow-up</div><div class="fup-body" style="color:var(--text3)">${escHtml(q)}</div>`;
+  feed.appendChild(card);
+}
+
+function askAbout(btn) {
+  const text = btn.dataset.text;
+  followupInput.value = `Tell me more about: ${text}`;
+  followupInput.focus();
+  followupBar.scrollIntoView({ behavior: 'smooth' });
+}
+function addFupAnswer(content) {
+  const card = document.createElement('div'); card.className = 'fup-card';
+  const clean = content.replace(/```[\s\S]*?```/g,'').trim();
+  const html  = clean.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/\n\n+/g,'</p><p>').replace(/\n/g,' ');
+  card.innerHTML = `<div class="fup-header">Answer</div><div class="fup-body"><p>${html}</p></div>`;
+  feed.appendChild(card);
+}
+
+// HELPERS
+function clearFeed()  { feed.innerHTML=''; currentIterCard=null; currentIterBody=null; thinkingCard=null; allPlots=[]; }
+function scrollFeed() { feed.scrollTop = feed.scrollHeight; }
+function removeThinking() { if(thinkingCard&&!thinkingCard.classList.contains('iter-card')){ thinkingCard.remove(); } thinkingCard=null; }
+function escHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function mdInline(t) { return escHtml(t).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>'); }
+
+function extractSummary(text) {
+  const prose = text.replace(/```[\s\S]*?```/g,'').trim();
+  const sentences = prose.match(/[^.!?\n]+[.!?]+/g) || [];
+  return sentences.slice(0,2).join(' ').trim() || prose.slice(0,200);
+}
+
+function parseToolOutput(content) {
+  const lines = content.split('\n'); const out = []; let inOutput = false;
+  for (const l of lines) {
+    if (l.startsWith('Output:'))        { inOutput = true;  continue; }
+    if (l.startsWith('Errors:'))        { inOutput = false; continue; }
+    if (l.startsWith('Status:'))        continue;
+    if (l.startsWith('Code execution')) continue;
+    if (inOutput && l.trim()) out.push(l.trim());
+  }
+  return out.length ? out.slice(0,8) : [content.slice(0,200)];
+}
+
+// RATE LIMIT CARD
+function showRateCard(label) {
+  const div = document.createElement('div'); div.className = 'rate-card';
+  div.innerHTML = `<div class="rate-dot"></div><span>${label}</span>`;
+  feed.appendChild(div);
+  setTimeout(() => div.remove(), 35000);
+}
+
+// LIGHTBOX for chart zoom
+document.addEventListener('click', e => {
+  if (e.target.closest('.gallery-item img')) {
+    const src = e.target.src;
+    const lb  = document.createElement('div'); lb.className = 'lightbox';
+    lb.innerHTML = `<img src="${src}"/>`;
+    lb.addEventListener('click', () => lb.remove());
+    document.body.appendChild(lb);
+  }
+});
+
+// HISTORY
+document.getElementById('historyToggle').addEventListener('click', () => {
+  const panel = document.getElementById('historyPanel');
+  panel.classList.toggle('open');
+  if (panel.classList.contains('open')) loadHistory();
+});
+document.getElementById('historyClose').addEventListener('click', () => {
+  document.getElementById('historyPanel').classList.remove('open');
+});
+
+async function loadHistory() {
+  const list = document.getElementById('historyList');
+  list.innerHTML = '<div class="history-empty">Loading…</div>';
+  try {
+    const r = await fetch('/sessions/list');
+    const d = await r.json();
+    const sessions = d.sessions || [];
+    if (!sessions.length) {
+      list.innerHTML = '<div class="history-empty">No saved analyses yet.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    sessions.forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'history-item';
+      const date = new Date(s.created_at * 1000).toLocaleString();
+      item.innerHTML = `
+        <button class="history-item-del" data-sid="${s.session_id}" title="Delete">✕</button>
+        <div class="history-item-name">${s.dataset_name || 'Unknown dataset'}</div>
+        <div class="history-item-date">${date}${s.has_plots ? ' · with charts' : ''}</div>`;
+      item.addEventListener('click', e => {
+        if (e.target.classList.contains('history-item-del')) return;
+        restoreSession(s.session_id);
+        document.getElementById('historyPanel').classList.remove('open');
+      });
+      item.querySelector('.history-item-del').addEventListener('click', async e => {
+        e.stopPropagation();
+        await fetch('/sessions/delete/' + s.session_id, { method:'DELETE' });
+        item.remove();
+        if (!list.querySelector('.history-item')) {
+          list.innerHTML = '<div class="history-empty">No saved analyses yet.</div>';
+        }
+      });
+      list.appendChild(item);
+    });
+  } catch(e) {
+    list.innerHTML = '<div class="history-empty">Failed to load history.</div>';
+  }
+}
+
+async function restoreSession(sid) {
+  try {
+    const r = await fetch('/sessions/load/' + sid);
+    const d = await r.json();
+    if (d.error) { showBanner('Could not load session: ' + d.error); return; }
+    clearFeed();
+    sessionId = d.session_id;
+    allPlots   = d.plots || [];
+    addFinalReport(d.final_report, allPlots);
+    exportWrap.style.display  = 'block';
+    resetWrap.style.display   = 'block';
+    followupBar.style.display = 'flex';
+    showBanner('Restored: ' + (d.dataset_name || 'previous analysis'));
+  } catch(e) {
+    showBanner('Failed to restore session: ' + e);
+  }
+}
+
+// EXPORT
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  if (!sessionId) return;
+  const btn = document.getElementById('exportBtn');
+  btn.disabled=true; btn.textContent='Generating…';
+  try {
+    const r = await fetch('/export_pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId})});
+    const d = await r.json();
+    if (d.pdf) { const a=document.createElement('a'); a.href='data:application/pdf;base64,'+d.pdf; a.download=d.filename||'report.pdf'; a.click(); }
+    else alert('PDF error: '+(d.error||'unknown'));
+  } catch(e) { alert('PDF failed: '+e); }
+  finally { btn.disabled=false; btn.textContent='Export PDF Report'; }
+});
+
+// SEND TO PREPROCESSOR
+document.getElementById('sendToPrepBtn').addEventListener('click', async () => {
+  if (!sessionId) {
+    showBanner('No active session. Run an analysis first.');
+    return;
+  }
+  const btn = document.getElementById('sendToPrepBtn');
+  btn.disabled = true; btn.textContent = 'Preparing…';
+  try {
+    const resp = await fetch('/analyse/get_csv/' + encodeURIComponent(sessionId));
+    if (!resp.ok) {
+      showBanner('Could not get file — please upload manually in Preprocessor.');
+      window.location.href = '/preprocess';
+      return;
+    }
+    const disp      = resp.headers.get('Content-Disposition') || '';
+    const nameMatch = disp.match(/filename=([^;\n]+)/);
+    const filename  = nameMatch ? nameMatch[1].trim() : 'dataset.csv';
+    const buf  = await resp.arrayBuffer();
+    const blob = new Blob([buf], { type: 'text/csv' });
+
+    // Store as object URL in sessionStorage key (small files) or use indexedDB approach
+    // Use a simpler method: store filename + fetch URL
+    sessionStorage.setItem('prepTransferSid', sessionId);
+    sessionStorage.setItem('prepTransferName', filename);
+
+    // Also cache the blob as base64 for small files (<2MB)
+    if (buf.byteLength < 2 * 1024 * 1024) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        sessionStorage.setItem('prepTransferData', reader.result);
+        window.location.href = '/preprocess?from_analyse=1';
+      };
+      reader.readAsDataURL(blob);
+    } else {
+      // Large file — just redirect with session ID
+      window.location.href = '/preprocess?analyse_session=' + encodeURIComponent(sessionId);
+    }
+  } catch(e) {
+    showBanner('Transfer failed. Please upload manually.');
+    window.location.href = '/preprocess';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send to Preprocessor';
+  }
+});
+
+// EXPORT EXCEL
+document.getElementById('exportExcelBtn').addEventListener('click', async () => {
+  if (!sessionId) return;
+  const btn = document.getElementById('exportExcelBtn');
+  btn.disabled = true; btn.textContent = 'Generating…';
+  try {
+    const r = await fetch('/export_excel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: sessionId })
+    });
+    const d = await r.json();
+    if (d.excel) {
+      const a = document.createElement('a');
+      a.href     = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + d.excel;
+      a.download = d.filename || 'report.xlsx';
+      a.click();
+    } else {
+      alert('Excel error: ' + (d.error || 'unknown'));
+    }
+  } catch(e) { alert('Excel export failed: ' + e); }
+  finally { btn.disabled = false; btn.textContent = 'Export Excel Report'; }
+});
+
+// RESET
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  sessionId=null; isRunning=false;
+  fileInput.value=''; fileNameEl.textContent=''; questionEl.value=''; const ch=document.getElementById('fileChips'); if(ch) ch.innerHTML='';
+  runBtn.disabled=true; clearFeed();
+  feed.innerHTML='<div class="empty-state"><h3>Ready to Analyse</h3><p>Upload a dataset, select a question, and the agent will autonomously explore your data and generate a structured report.</p></div>';
+  suggestWrap.style.display=exportWrap.style.display=resetWrap.style.display=followupBar.style.display='none';
+  suggestionsEl.innerHTML='';
+});
+</script>
+</body>
+</html>
